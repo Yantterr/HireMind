@@ -1,0 +1,47 @@
+[tool.mypy]
+ignore_missing_imports = true
+strict = true
+# exclude not working here: https://github.com/python/mypy/pull/12373
+
+[tool.ruff]
+line-length = 119
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "migrations",
+    ".import_linter_cache",
+]
+
+[tool.ruff.lint]
+ignore = [
+    "D100",
+    "D104",
+    "D105",
+    "D107",
+    "D401",
+    "Q000",
+    "S101",
+    "S320"
+]
+select = [
+    "B",
+    "C4",
+    "C90",
+    "D",
+    "E",
+    "ERA",
+    "F",
+    "I",
+    "W",
+    "T10",
+    "S",
+    "RUF100"
+]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.format]
+quote-style = "single"
