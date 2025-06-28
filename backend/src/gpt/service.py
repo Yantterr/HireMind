@@ -5,10 +5,10 @@ from src.gpt.models import chat_model
 from src.schemas import ChatSchema
 
 
-async def create_chat(db: AsyncSession, title: str, context: str, user_id: int) -> chat_model:
+async def create_chat(db: AsyncSession, title: str, user_id: int) -> chat_model:
     """Create gpt chat."""
     print(title)
-    new_chat = ChatSchema(user_id=user_id, context=context, title=title)
+    new_chat = ChatSchema(user_id=user_id, title=title)
 
     db.add(new_chat)
     await db.commit()

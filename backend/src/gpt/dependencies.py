@@ -17,9 +17,9 @@ async def create_chat(
     """Create gpt chat."""
     user_id = (await authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
 
-    chat = await gpt_service.create_chat(db=db, context=dumps([{}]), title=create_chat_data.title, user_id=user_id)
+    chat = await gpt_service.create_chat(db=db, title=create_chat_data.title, user_id=user_id)
 
-    await redis.hset(str(user_id), chat.id, chat.context)
+    await redis.hset(str(user_id), chat.id, chat)
 
     return message_model(message='Chat created successfully.')
 

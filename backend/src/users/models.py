@@ -1,5 +1,4 @@
 from src.models import base_model
-from src.schemas import UserSchema
 
 
 class base_user_model(base_model):
