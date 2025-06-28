@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 import src.users.utils as users_utils
+from src.schemas import UserSchema
 from src.users.models import user_create_model
-from src.users.schemas import UserSchema
 
 
 async def get_users(db: AsyncSession) -> list[UserSchema]:

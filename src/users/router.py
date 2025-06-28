@@ -5,8 +5,8 @@ from src.config import settings
 from src.database import RedisDep, SessionDep
 from src.logger import Logger
 from src.models import message_model
+from src.schemas import UserSchema
 from src.users.models import user_create_model, user_login_model, user_model, users_model
-from src.users.schemas import UserSchema
 
 users_router = APIRouter(
     prefix='/users',
@@ -20,7 +20,7 @@ async def get_users(
 ) -> list[UserSchema]:
     """Endpoint for get all users."""
     users: list[UserSchema] = await users_dep.get_users(db=db)
-    return users
+    return users_model(users=users)
 
 
 @users_router.get('/me', response_model=user_model)
@@ -46,7 +46,7 @@ async def get_current_user(
 @users_router.post('/login', response_model=message_model)
 async def login_user(
     request: Request, response: Response, db: SessionDep, redis: RedisDep, login_data: user_login_model
-) -> str:
+) -> message_model:
     """Login user."""
     user_agent = request.headers.get('user-agent')
 
@@ -64,11 +64,11 @@ async def login_user(
         samesite='lax',
     )
 
-    return 'Login successful.'
+    return message_model(message='Login successful.')
 
 
 @users_router.post('/logout', response_model=message_model)
-async def logout_user(request: Request, response: Response, redis: RedisDep) -> str:
+async def logout_user(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> message_model:
     """Logout user."""
     token = request.cookies.get('token')
     if token is None:
@@ -79,14 +79,14 @@ async def logout_user(request: Request, response: Response, redis: RedisDep) -> 
     if user_agent is None:
         raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
 
-    message = await users_dep.logout_user(token=token, user_agent=user_agent, redis=redis)
+    message = await users_dep.logout_user(token=token, db=db, user_agent=user_agent, redis=redis)
     response.delete_cookie(key='token')
 
-    return message
+    return message_model(message=message)
 
 
 @users_router.post('/refresh', response_model=message_model)
-async def refresh_token(request: Request, response: Response, redis: RedisDep) -> message_model:
+async def refresh_token(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> message_model:
     """Refresh jwt token."""
     token = request.cookies.get('token')
     if token is None:
@@ -97,7 +97,7 @@ async def refresh_token(request: Request, response: Response, redis: RedisDep) -
     if user_agent is None:
         raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
 
-    new_token = await users_dep.refresh_token(user_agent=user_agent, redis=redis, token=token)
+    new_token = await users_dep.refresh_token(user_agent=user_agent, db=db, redis=redis, token=token)
 
     response.set_cookie(
         key='token',

@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.database import close_redis, init_redis
+from src.gpt.router import gpt_router
 from src.users.router import users_router
 
 
@@ -30,6 +31,7 @@ if settings.backend_cors_origins:
     )
 
 app.include_router(users_router)
+app.include_router(gpt_router)
 
 
 if __name__ == '__main__':

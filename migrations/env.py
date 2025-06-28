@@ -8,7 +8,7 @@ from alembic import context
 from src.database import Base
 from src.config import settings
 
-from src.users.schemas import UserSchema
+from src.schemas import ChatSchema, UserSchema, MessageSchema
 
 config = context.config
 

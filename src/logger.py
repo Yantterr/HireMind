@@ -5,7 +5,7 @@ class Logger:
     """Logger errors."""
 
     errors = {
-        'user_not_found': (404, 'User not found'),
+        'data_not_found': (404, 'Data not found'),
         'user_not_authenticated': (401, 'Not authenticated'),
         'access_denied': (403, 'Access denied'),
         'user_already_exists': (409, 'User already exists'),

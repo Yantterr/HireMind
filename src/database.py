@@ -10,7 +10,7 @@ from src.config import settings
 redis_client: Redis | None = None
 engine = create_async_engine(settings.database_url)
 
-session_factory = async_sessionmaker(engine=engine, expire_on_commit=False)
+session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):

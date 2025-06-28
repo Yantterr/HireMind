@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from pydantic import BaseModel
 
 
@@ -13,13 +15,9 @@ class message_model(base_model):
     message: str
 
 
-class token_model(base_model):
-    """Model with user_agent field."""
+class RoleEnum(StrEnum):
+    """Role enum."""
 
-    user_agent: str
-
-
-class tokens_model(base_model):
-    """Model with list of user agents."""
-
-    id: list[token_model]
+    USER = 'user'
+    SYSTEM = 'system'
+    ASSISTANT = 'assistant'

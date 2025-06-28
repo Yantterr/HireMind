@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int
     jwt_algorithm: str
 
+    gpt_api_key: str
+
     host: str
     port: int
 

@@ -1,5 +1,5 @@
 from src.models import base_model
-from src.users.schemas import UserSchema
+from src.schemas import UserSchema
 
 
 class base_user_model(base_model):
@@ -36,4 +36,16 @@ class create_user_result(base_model):
     """User result."""
 
     token: str
-    user: UserSchema
+    user: user_model
+
+
+class token_model(base_model):
+    """Model with user_agent field."""
+
+    user_agent: str
+
+
+class tokens_model(base_model):
+    """Model with list of user agents."""
+
+    id: list[token_model]
