@@ -1,32 +1,37 @@
+from datetime import datetime
 from json import dumps, loads
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.gpt.service as gpt_service
+import src.utils as generally_utils
 from src.database import AsyncRedis
-from src.gpt.models import NNMessage_model, create_chat_model
+from src.gpt.models import ChatCreateModel, ChatModel, MessageCreateModel
 from src.logger import Logger
-from src.models import message_model
+from src.models import MessageModel
 from src.schemas import ChatSchema
-from src.users.dependencies import authorize_user
 
 
 async def create_chat(
-    create_chat_data: create_chat_model, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession
-) -> message_model:
+    create_chat_data: ChatCreateModel, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession
+) -> ChatSchema:
     """Create gpt chat."""
-    user_id = (await authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
 
     chat = await gpt_service.create_chat(db=db, title=create_chat_data.title, user_id=user_id)
 
-    await redis.hset(str(user_id), chat.id, chat)
+    await redis.set(
+        name=f'{user_id}/chat:{chat.id}',
+        value=ChatModel.model_validate(chat).model_dump_json(),
+        expire=2_592_000,
+    )
 
-    return message_model(message='Chat created successfully.')
+    return chat
 
 
 async def get_all_chats(token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession) -> list[ChatSchema]:
     """Get all user chats."""
-    user_id = (await authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
 
     chats = await gpt_service.get_all_chats(db=db, user_id=user_id)
 
@@ -35,40 +40,59 @@ async def get_all_chats(token: str, user_agent: str, redis: AsyncRedis, db: Asyn
 
 async def get_chat_by_id(chat_id: int, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession) -> ChatSchema:
     """Get chat by id."""
-    user_id = (await authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+
+    # redis_chat = await redis.get(value=f'{user_id}/chat:{chat_id}')
+    # if redis_chat is not None:
+    #     return loads(redis_chat)
 
     chat = await gpt_service.get_chat_by_id(db=db, user_id=user_id, chat_id=chat_id)
 
     if chat is None:
-        raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
+        raise Logger.create_response_error(error_key='data_not_found')
+
+    await redis.set(name=f'{user_id}/chat:{chat.id}', value=ChatModel.model_validate(chat).model_dump_json(), expire=2)
 
     return chat
 
 
-async def delete_chat(chat_id: int, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession) -> message_model:
+async def delete_chat(chat_id: int, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession) -> MessageModel:
     """Delete chat by id."""
-    user_id = (await authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+
+    await redis.delete(f'{user_id}/chat:{chat_id}')
 
     res = await gpt_service.delete_chat(db=db, user_id=user_id, chat_id=chat_id)
 
     if not res:
-        raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
+        raise Logger.create_response_error(error_key='data_not_found')
 
-    return message_model(message='Chat deleted successfully.')
+    return MessageModel(message='Chat deleted successfully.')
 
 
 async def send_message(
-    chat_id: int, message: NNMessage_model, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession
-) -> message_model:
+    chat_id: int, message: MessageCreateModel, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession
+) -> ChatModel:
     """Send message to gpt chat."""
-    user_id = (await authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
-    chat_id_str = str(chat_id)
+    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
 
-    old_contexts = await redis.hgetall(chat_id_str)
+    json_chat = await redis.get(value=f'{user_id}/chat:{chat_id}')
 
-    if chat_id_str not in old_contexts:
-        raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
+    if json_chat is None:
+        chat = await gpt_service.get_chat_by_id(db=db, user_id=user_id, chat_id=chat_id)
 
-    old_context = loads(old_contexts[chat_id_str])
+        if chat is None:
+            raise Logger.create_response_error(error_key='data_not_found')
 
-    print(old_context)
+        json_chat = ChatModel.model_validate(chat).model_dump_json()
+
+    chat = loads(json_chat)
+
+    chat['messages'].append({**message.model_dump(), 'created_at': datetime.now().isoformat(timespec='seconds')})
+
+    chat['messages'].sort(key=lambda msg: msg['created_at'])
+
+    await redis.set(name=f'{user_id}/chat:{chat_id}', value=dumps(chat), expire=5)
+    await redis.set(name=f'notifications/delete={user_id}/chat:{chat_id}', value='', expire=3)
+
+    return ChatModel(**chat)

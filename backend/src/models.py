@@ -3,13 +3,13 @@ from enum import StrEnum
 from pydantic import BaseModel
 
 
-class base_model(BaseModel):
+class Base(BaseModel):
     """Base model with config pydantic for sqlalchemy."""
 
-    model_config = {'from_attributes': True}
+    model_config = {'from_attributes': True, 'use_enum_values': True}
 
 
-class message_model(base_model):
+class MessageModel(Base):
     """Model with message field."""
 
     message: str

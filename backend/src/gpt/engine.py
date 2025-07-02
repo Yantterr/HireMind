@@ -1,15 +1,14 @@
 from openai import OpenAI
 
 from config import settings
-from src.gpt.models import NNContext_model, NNMessage_model, NNResponse_model
+from src.gpt.models import ChatModel, GptResponseModel
 
 NNClient = OpenAI(api_key=settings.gpt_api_key)
 
 
-def create_nn_request(message: NNMessage_model, context: NNContext_model) -> NNResponse_model:
+def create_gpt_request(chat: ChatModel) -> GptResponseModel:
     """Create NN request."""
-    context.append(message)
-    res = NNClient.responses.create(model='gpt-4o', messages=context, max_output_tokens=20, temperature=0.5)
+    res = NNClient.responses.create(model='', messages=chat.messages, max_output_tokens=20)
     return {
         'request_tokens': res.usage.prompt_tokens,
         'response_tokens': res.usage.completion_tokens,

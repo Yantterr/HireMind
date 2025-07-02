@@ -3,7 +3,7 @@ from sqlalchemy.future import select
 
 import src.users.utils as users_utils
 from src.schemas import UserSchema
-from src.users.models import user_create_model
+from src.users.models import UserCreateModel
 
 
 async def get_users(db: AsyncSession) -> list[UserSchema]:
@@ -33,7 +33,7 @@ async def get_user_by_username(db: AsyncSession, username: str) -> UserSchema | 
     return user
 
 
-async def create_user(db: AsyncSession, user: user_create_model) -> UserSchema:
+async def create_user(db: AsyncSession, user: UserCreateModel) -> UserSchema:
     """Service for create user."""
     new_user = UserSchema(username=user.username, password=users_utils.get_password_hash(user.password))
 

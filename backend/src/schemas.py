@@ -2,11 +2,11 @@ from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.database import Base
+from src.database import SqlalchemyBase
 from src.models import RoleEnum
 
 
-class UserSchema(Base):
+class UserSchema(SqlalchemyBase):
     """Sqlalchemy schema of user."""
 
     __tablename__ = 'users'
@@ -21,7 +21,7 @@ class UserSchema(Base):
     )
 
 
-class ChatSchema(Base):
+class ChatSchema(SqlalchemyBase):
     """Sqlalchemy schema of user."""
 
     __tablename__ = 'chats'
@@ -42,7 +42,7 @@ class ChatSchema(Base):
     is_archived: Mapped[bool] = mapped_column(default=False)
 
 
-class MessageSchema(Base):
+class MessageSchema(SqlalchemyBase):
     """Sqlalchemy schema of message."""
 
     __tablename__ = 'messages'
