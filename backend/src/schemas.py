@@ -1,19 +1,34 @@
+from typing import Optional
+
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from src.database import SqlalchemyBase
-from src.models import RoleEnum
+from src.models import NNRoleEnum, SystemRoleEnum
+
+
+class SqlalchemyBase(DeclarativeBase):
+    """Base class for all SQLAlchemy ORM models."""
+
+    pass
 
 
 class UserSchema(SqlalchemyBase):
-    """Sqlalchemy schema of user."""
+    """ORM model representing a user."""
 
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(128), nullable=False)
+
+    role: Mapped[str] = mapped_column(
+        SQLEnum(SystemRoleEnum),
+        nullable=False,
+        default=SystemRoleEnum.USER.value,
+        server_default=SystemRoleEnum.USER.value,
+    )
+
+    username: Mapped[Optional[str]] = mapped_column(unique=True, nullable=True)
+    password: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     chats: Mapped[list['ChatSchema']] = relationship('ChatSchema', back_populates='user', cascade='all, delete-orphan')
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[DateTime] = mapped_column(
@@ -22,7 +37,7 @@ class UserSchema(SqlalchemyBase):
 
 
 class ChatSchema(SqlalchemyBase):
-    """Sqlalchemy schema of user."""
+    """ORM model representing a chat session."""
 
     __tablename__ = 'chats'
 
@@ -34,6 +49,9 @@ class ChatSchema(SqlalchemyBase):
 
     messages: Mapped[list['MessageSchema']] = relationship('MessageSchema', back_populates='chat', cascade='all')
 
+    count_request_tokens: Mapped[int] = mapped_column(default=0)
+    count_response_tokens: Mapped[int] = mapped_column(default=0)
+
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -43,13 +61,22 @@ class ChatSchema(SqlalchemyBase):
 
 
 class MessageSchema(SqlalchemyBase):
-    """Sqlalchemy schema of message."""
+    """ORM model representing a message within a chat."""
 
     __tablename__ = 'messages'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     chat_id: Mapped[int] = mapped_column(ForeignKey('chats.id'), nullable=False)
     chat: Mapped['ChatSchema'] = relationship('ChatSchema', back_populates='messages')
-    role: Mapped[str] = mapped_column(SQLEnum(RoleEnum), nullable=False)
+    role: Mapped[str] = mapped_column(SQLEnum(NNRoleEnum), nullable=False)
     content: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class AnonymousUserSchema(SqlalchemyBase):
+    """ORM model representing an anonymous user mapping."""
+
+    __tablename__ = 'anonymous_users'
+
+    hash: Mapped[str] = mapped_column(primary_key=True, nullable=True)
+    user_id: Mapped[int] = mapped_column(nullable=False)

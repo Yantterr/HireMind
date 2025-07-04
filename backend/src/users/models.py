@@ -1,38 +1,42 @@
-from src.models import Base
+from typing import Optional
+
+from src.models import Base, SystemRoleEnum
 
 
 class BaseUserModel(Base):
-    """Base user model."""
+    """Base user model with optional username."""
 
-    username: str
+    username: Optional[str] = None
 
 
 class UserModel(BaseUserModel):
-    """User model contains: id, username."""
+    """User model with ID and role."""
 
     id: int
+    role: SystemRoleEnum
 
 
 class UserCreateModel(BaseUserModel):
-    """User model contains: password, username."""
+    """User creation model with optional password and role."""
 
+    password: Optional[str] = None
+
+
+class UserLoginModel(Base):
+    """User login model with required username and password."""
+
+    username: str
     password: str
 
 
-class UserLoginModel(UserCreateModel):
-    """User model contains: password, username."""
-
-    pass
-
-
 class UserCreateResultModel(Base):
-    """User result."""
+    """Result model for user creation containing token and user info."""
 
     token: str
     user: UserModel
 
 
 class TokenModel(Base):
-    """Model with user_agent field."""
+    """Model containing user agent string."""
 
     user_agent: str

@@ -1,36 +1,36 @@
 from datetime import datetime
 from typing import Optional
 
-from src.models import Base, RoleEnum
+from src.models import Base, NNRoleEnum
 
 
 class MessageBaseModel(Base):
-    """Base message model."""
+    """Base message model with optional ID, role, and content."""
 
-    id: int | None = None
-    role: RoleEnum
+    id: Optional[int] = None
+    role: NNRoleEnum
     content: str
 
 
 class MessageCreateModel(MessageBaseModel):
-    """Create message model."""
+    """Model for creating a message."""
 
     pass
 
 
 class MessageGetModel(MessageCreateModel):
-    """Get message model."""
+    """Model for retrieving a message with creation timestamp."""
 
     created_at: datetime
 
 
 class GptResponseModel(Base):
-    """Neural network response."""
+    """Model representing a neural network response."""
 
     request_tokens: int
     response_tokens: int
-    message: str
     result: str
+    created_at: str
 
 
 class ChatBaseModel(Base):
@@ -40,22 +40,24 @@ class ChatBaseModel(Base):
 
 
 class ChatCreateModel(ChatBaseModel):
-    """Create chat model."""
+    """Model for creating a chat with optional title."""
 
     title: Optional[str]
 
 
 class ChatGetModel(ChatCreateModel):
-    """Get chat model."""
+    """Model for retrieving chat details."""
 
     id: int
     is_archived: bool
+    count_request_tokens: int
+    count_response_tokens: int
     created_at: datetime
     updated_at: datetime
 
 
 class ChatModel(ChatGetModel):
-    """Chat model."""
+    """Full chat model including user ID and optional messages."""
 
     user_id: int
     messages: Optional[list[MessageGetModel]]
