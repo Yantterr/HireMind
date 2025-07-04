@@ -1,50 +1,43 @@
-from src.models import base_model
+from typing import Optional
+
+from src.models import Base, SystemRoleEnum
 
 
-class base_user_model(base_model):
+class BaseUserModel(Base):
     """Base user model."""
 
-    username: str
+    username: Optional[str]
 
 
-class user_model(base_user_model):
+class UserModel(BaseUserModel):
     """User model contains: id, username."""
 
+    role: SystemRoleEnum
     id: int
 
 
-class user_create_model(base_user_model):
+class UserCreateModel(BaseUserModel):
     """User model contains: password, username."""
 
+    role: SystemRoleEnum
+    password: Optional[str]
+
+
+class UserLoginModel(Base):
+    """User model contains: password, username."""
+
+    username: str
     password: str
 
 
-class user_login_model(user_create_model):
-    """User model contains: password, username."""
-
-    pass
-
-
-class users_model(base_model):
-    """Array of user_mode."""
-
-    users: list[user_model]
-
-
-class create_user_result(base_model):
+class UserCreateResultModel(Base):
     """User result."""
 
     token: str
-    user: user_model
+    user: UserModel
 
 
-class token_model(base_model):
+class TokenModel(Base):
     """Model with user_agent field."""
 
     user_agent: str
-
-
-class tokens_model(base_model):
-    """Model with list of user agents."""
-
-    id: list[token_model]

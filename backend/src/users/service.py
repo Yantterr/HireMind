@@ -1,9 +1,12 @@
+from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 import src.users.utils as users_utils
-from src.schemas import UserSchema
-from src.users.models import user_create_model
+from src.models import SystemRoleEnum
+from src.schemas import AnonymousUserSchema, UserSchema
+from src.users.models import UserCreateModel
 
 
 async def get_users(db: AsyncSession) -> list[UserSchema]:
@@ -33,9 +36,15 @@ async def get_user_by_username(db: AsyncSession, username: str) -> UserSchema | 
     return user
 
 
-async def create_user(db: AsyncSession, user: user_create_model) -> UserSchema:
+async def create_user(
+    db: AsyncSession, password: Optional[str], username: Optional[str], role: SystemRoleEnum
+) -> UserSchema:
     """Service for create user."""
-    new_user = UserSchema(username=user.username, password=users_utils.get_password_hash(user.password))
+    new_user = UserSchema(
+        username=username,
+        password=users_utils.get_password_hash(password) if password is not None else None,
+        role=role,
+    )
 
     db.add(new_user)
     await db.commit()

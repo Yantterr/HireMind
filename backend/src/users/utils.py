@@ -5,6 +5,7 @@ from bcrypt import gensalt, hashpw
 from fastapi import HTTPException, status
 
 from src.config import settings
+from src.logger import Logger
 
 
 def get_password_hash(password: str) -> str:
@@ -19,8 +20,11 @@ def get_password_hash(password: str) -> str:
 def get_token(user_id: int) -> str:
     """Create jwt token."""
     expire = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
-    to_encode = {'sub': str(user_id), 'exp': expire}
-    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    encoded_jwt = jwt.encode(
+        payload={'sub': str(user_id), 'exp': int(expire.timestamp())},
+        key=settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
     return encoded_jwt
 
 
@@ -36,7 +40,7 @@ def decode_token(token: str) -> int:
 
         return int(user_id)
     except jwt.ExpiredSignatureError as err:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Token expired') from err
+        raise Logger.create_response_error(error_key='token_expired', is_cookie_remove=True) from err
     except jwt.PyJWTError as e:
         raise e from e
     except ValueError as e:

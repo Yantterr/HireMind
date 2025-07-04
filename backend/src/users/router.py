@@ -4,9 +4,9 @@ import src.users.dependencies as users_dep
 from src.config import settings
 from src.database import RedisDep, SessionDep
 from src.logger import Logger
-from src.models import message_model
+from src.models import MessageModel
 from src.schemas import UserSchema
-from src.users.models import user_create_model, user_login_model, user_model, users_model
+from src.users.models import UserCreateModel, UserLoginModel, UserModel
 
 users_router = APIRouter(
     prefix='/users',
@@ -14,39 +14,48 @@ users_router = APIRouter(
 )
 
 
-@users_router.get('/', response_model=users_model)
+@users_router.get('/', response_model=list[UserModel])
 async def get_users(
     db: SessionDep,
 ) -> list[UserSchema]:
     """Endpoint for get all users."""
     users: list[UserSchema] = await users_dep.get_users(db=db)
-    return users_model(users=users)
+    return users
 
 
-@users_router.get('/me', response_model=user_model)
+@users_router.get('/me', response_model=UserModel)
 async def get_current_user(
     request: Request,
+    response: Response,
     db: SessionDep,
     redis: RedisDep,
 ) -> UserSchema:
     """Get user by cookie token."""
+    user_agent = request.headers.get('user-agent')
     token = request.cookies.get('token')
-    if token is None:
+    hash = request.query_params.get('hash')
+
+    if (not token and not hash) or not user_agent:
         raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
-    user_agent = request.headers.get('user-agent')
+    result = await users_dep.get_current_user(token=token, hash=hash, db=db, redis=redis, user_agent=user_agent)
 
-    if user_agent is None:
-        raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
+    response.set_cookie(
+        key='token',
+        value=result.token,
+        httponly=True,
+        max_age=settings.jwt_expire_minutes * 60,
+        secure=False,
+        samesite='lax',
+    )
 
-    user: UserSchema = await users_dep.get_current_user(db=db, user_agent=user_agent, token=token, redis=redis)
-    return user
+    return result.user
 
 
-@users_router.post('/login', response_model=message_model)
+@users_router.post('/login', response_model=MessageModel)
 async def login_user(
-    request: Request, response: Response, db: SessionDep, redis: RedisDep, login_data: user_login_model
-) -> message_model:
+    request: Request, response: Response, db: SessionDep, redis: RedisDep, login_data: UserLoginModel
+) -> MessageModel:
     """Login user."""
     user_agent = request.headers.get('user-agent')
 
@@ -64,38 +73,32 @@ async def login_user(
         samesite='lax',
     )
 
-    return message_model(message='Login successful.')
+    return MessageModel(message='Login successful.')
 
 
-@users_router.post('/logout', response_model=message_model)
-async def logout_user(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> message_model:
+@users_router.post('/logout', response_model=MessageModel)
+async def logout_user(request: Request, response: Response, redis: RedisDep) -> MessageModel:
     """Logout user."""
     token = request.cookies.get('token')
-    if token is None:
-        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
-
     user_agent = request.headers.get('user-agent')
 
-    if user_agent is None:
-        raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
+    if token is None or user_agent is None:
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
-    message = await users_dep.logout_user(token=token, db=db, user_agent=user_agent, redis=redis)
+    message = await users_dep.logout_user(token=token, user_agent=user_agent, redis=redis)
     response.delete_cookie(key='token')
 
-    return message_model(message=message)
+    return MessageModel(message=message)
 
 
-@users_router.post('/refresh', response_model=message_model)
-async def refresh_token(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> message_model:
+@users_router.post('/refresh', response_model=MessageModel)
+async def refresh_token(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> MessageModel:
     """Refresh jwt token."""
     token = request.cookies.get('token')
-    if token is None:
-        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
-
     user_agent = request.headers.get('user-agent')
 
-    if user_agent is None:
-        raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
+    if not user_agent or not token:
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
     new_token = await users_dep.refresh_token(user_agent=user_agent, db=db, redis=redis, token=token)
 
@@ -108,20 +111,23 @@ async def refresh_token(request: Request, response: Response, db: SessionDep, re
         samesite='lax',
     )
 
-    return message_model(message='Token was refreshed successful.')
+    return MessageModel(message='Token was refreshed successful.')
 
 
-@users_router.post('/', response_model=user_model)
+@users_router.post('/', response_model=UserModel)
 async def create_user(
-    request: Request, response: Response, db: SessionDep, redis: RedisDep, user_create_data: user_create_model
+    request: Request, response: Response, db: SessionDep, redis: RedisDep, user_create_data: UserCreateModel
 ) -> UserSchema:
     """Create user."""
     user_agent = request.headers.get('user-agent')
+    hash = request.query_params.get('hash')
 
     if user_agent is None:
         raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
 
-    result = await users_dep.create_user(db=db, user_agent=user_agent, redis=redis, user_create_data=user_create_data)
+    result = await users_dep.create_user(
+        db=db, user_agent=user_agent, hash=hash, redis=redis, user_create_data=user_create_data
+    )
 
     response.set_cookie(
         key='token',
@@ -135,7 +141,7 @@ async def create_user(
     return result.user
 
 
-@users_router.get('/{user_id}', response_model=user_model)
+@users_router.get('/{user_id}', response_model=UserModel)
 async def get_user(db: SessionDep, user_id: int) -> UserSchema:
     """Get user by id."""
     user = await users_dep.get_user(db=db, user_id=user_id)
