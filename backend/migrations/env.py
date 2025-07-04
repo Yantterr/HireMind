@@ -7,8 +7,7 @@ from alembic import context
 
 from src.config import settings
 
-from src.database import SqlalchemyBase
-from src.schemas import ChatSchema, UserSchema, MessageSchema
+from src.schemas import ChatSchema, SqlalchemyBase, UserSchema, MessageSchema, AnonymousUserSchema
 
 config = context.config
 

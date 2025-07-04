@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Request, Response
 
 import src.users.dependencies as users_dep
-import src.utils as generally_utils
 from src.config import settings
 from src.database import RedisDep, SessionDep
 from src.logger import Logger
@@ -27,14 +26,30 @@ async def get_users(
 @users_router.get('/me', response_model=UserModel)
 async def get_current_user(
     request: Request,
+    response: Response,
     db: SessionDep,
     redis: RedisDep,
 ) -> UserSchema:
     """Get user by cookie token."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
+    user_agent = request.headers.get('user-agent')
+    token = request.cookies.get('token')
+    hash = request.query_params.get('hash')
 
-    user: UserSchema = await users_dep.get_current_user(db=db, user_agent=user_agent, token=token, redis=redis)
-    return user
+    if (not token and not hash) or not user_agent:
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
+
+    result = await users_dep.get_current_user(token=token, hash=hash, db=db, redis=redis, user_agent=user_agent)
+
+    response.set_cookie(
+        key='token',
+        value=result.token,
+        httponly=True,
+        max_age=settings.jwt_expire_minutes * 60,
+        secure=False,
+        samesite='lax',
+    )
+
+    return result.user
 
 
 @users_router.post('/login', response_model=MessageModel)
@@ -62,11 +77,15 @@ async def login_user(
 
 
 @users_router.post('/logout', response_model=MessageModel)
-async def logout_user(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> MessageModel:
+async def logout_user(request: Request, response: Response, redis: RedisDep) -> MessageModel:
     """Logout user."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
+    token = request.cookies.get('token')
+    user_agent = request.headers.get('user-agent')
 
-    message = await users_dep.logout_user(token=token, db=db, user_agent=user_agent, redis=redis)
+    if token is None or user_agent is None:
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
+
+    message = await users_dep.logout_user(token=token, user_agent=user_agent, redis=redis)
     response.delete_cookie(key='token')
 
     return MessageModel(message=message)
@@ -75,7 +94,11 @@ async def logout_user(request: Request, response: Response, db: SessionDep, redi
 @users_router.post('/refresh', response_model=MessageModel)
 async def refresh_token(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> MessageModel:
     """Refresh jwt token."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
+    token = request.cookies.get('token')
+    user_agent = request.headers.get('user-agent')
+
+    if not user_agent or not token:
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
     new_token = await users_dep.refresh_token(user_agent=user_agent, db=db, redis=redis, token=token)
 
@@ -94,14 +117,17 @@ async def refresh_token(request: Request, response: Response, db: SessionDep, re
 @users_router.post('/', response_model=UserModel)
 async def create_user(
     request: Request, response: Response, db: SessionDep, redis: RedisDep, user_create_data: UserCreateModel
-) -> UserModel:
+) -> UserSchema:
     """Create user."""
     user_agent = request.headers.get('user-agent')
+    hash = request.query_params.get('hash')
 
     if user_agent is None:
         raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
 
-    result = await users_dep.create_user(db=db, user_agent=user_agent, redis=redis, user_create_data=user_create_data)
+    result = await users_dep.create_user(
+        db=db, user_agent=user_agent, hash=hash, redis=redis, user_create_data=user_create_data
+    )
 
     response.set_cookie(
         key='token',

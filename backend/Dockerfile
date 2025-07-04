@@ -1,7 +1,6 @@
 FROM python:3.13
 
-
-COPY requirements.txt .
+COPY . .
 
 RUN pip install -r requirements.txt
 
@@ -16,7 +15,6 @@ ENV JWT_SECRET_KEY="435378289u3tiojezu8jiosfdjue8jio"
 ENV JWT_EXPIRE_MINUTES=3600
 ENV JWT_ALGORITHM="HS256"
 
-
 ARG GPT_API_KEY
 ENV GPT_API_KEY=${GPT_API_KEY}
 
@@ -24,4 +22,4 @@ ENV BACKEND_CORS_ORIGINS="http://localhost"
 
 RUN apt-get update && apt-get install -y redis-server
 
-CMD redis-server --daemonize yes && python -m src.main
+CMD redis-server --daemonize yes && uvicorn src.main:app --host 0.0.0.0 --port 8000

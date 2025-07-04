@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.users.service as users_service
@@ -5,8 +8,9 @@ import src.users.utils as users_utils
 import src.utils as generally_utils
 from src.database import AsyncRedis
 from src.logger import Logger
+from src.models import SystemRoleEnum
 from src.schemas import UserSchema
-from src.users.models import UserCreateModel, UserCreateResultModel, UserLoginModel
+from src.users.models import UserCreateModel, UserLoginModel
 
 
 async def get_users(db: AsyncSession) -> list[UserSchema]:
@@ -25,54 +29,96 @@ async def get_user(db: AsyncSession, user_id: int) -> UserSchema:
 
 async def refresh_token(user_agent: str, token: str, db: AsyncSession, redis: AsyncRedis) -> str:
     """Refresh jwt token."""
-    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
-    user_id_str = str(user_id)
+    user_id = await generally_utils.get_user_id_by_token(token=token, user_agent=user_agent, redis=redis)
 
     new_token = users_utils.get_token(user_id=user_id)
-
-    await redis.set(name=f'{user_id_str}/agent:{user_agent}', value=new_token, expire=2_592_000)
 
     return new_token
 
 
-async def get_current_user(token: str, db: AsyncSession, redis: AsyncRedis, user_agent: str) -> UserSchema:
-    """Get and validate user token."""
-    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+@dataclass
+class GetCurrentUserResponse:
+    """Response model for getting current user."""
 
-    user = await users_service.get_user(db=db, user_id=user_id)
+    token: str
+    user: UserSchema
 
-    if not user:
-        raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=True)
 
-    return user
+async def get_current_user(
+    token: Optional[str], hash: Optional[str], db: AsyncSession, redis: AsyncRedis, user_agent: str
+) -> GetCurrentUserResponse:
+    """Get user by cookie token or query hash."""
+    if token:
+        user_id = await generally_utils.get_user_id_by_token(token=token, user_agent=user_agent, redis=redis)
+        user = await users_service.get_user(db=db, user_id=user_id)
+
+        if not user:
+            raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
+
+        return GetCurrentUserResponse(token=token, user=user)
+
+    if hash:
+        user = await generally_utils.get_user_by_hash(
+            hash=hash,
+            db=db,
+        )
+
+        token = users_utils.get_token(user_id=user.id)
+        await redis.set(name=f'{str(user.id)}/agent:{user_agent}', value=token, expire=2_592_000)
+
+        return GetCurrentUserResponse(token=token, user=user)
+
+    raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
+
+
+@dataclass
+class CreateUserResponse:
+    """Response model for user creation."""
+
+    token: str
+    user: UserSchema
 
 
 async def create_user(
     db: AsyncSession,
     redis: AsyncRedis,
     user_agent: str,
+    hash: Optional[str],
     user_create_data: UserCreateModel,
-) -> UserCreateResultModel:
+) -> CreateUserResponse:
     """Create user."""
-    user = await users_service.get_user_by_username(db=db, username=user_create_data.username)
+    if not user_create_data.username and hash:
+        user = await generally_utils.get_user_by_hash(hash=hash, db=db)
+        token = users_utils.get_token(user_id=user.id)
 
-    if user is not None:
-        raise Logger.create_response_error(error_key='user_already_exists', is_cookie_remove=False)
+        await redis.set(name=f'{str(user.id)}/agent:{user_agent}', value=token, expire=2_592_000)
 
-    new_user = await users_service.create_user(db=db, user=user_create_data)
+        return CreateUserResponse(token=token, user=user)
 
-    token = users_utils.get_token(user_id=new_user.id)
+    if user_create_data.username and user_create_data.password:
+        user = await users_service.get_user_by_username(db=db, username=user_create_data.username)
 
-    await redis.set(name=f'{str(new_user.id)}/agent:{user_agent}', value=token, expire=2_592_000)
+        if user is not None:
+            raise Logger.create_response_error(error_key='user_already_exists', is_cookie_remove=False)
 
-    return UserCreateResultModel(token=token, user=new_user)  # type: ignore
+        new_user = await users_service.create_user(
+            db=db, role=SystemRoleEnum.USER, username=user_create_data.username, password=user_create_data.password
+        )
+
+        token = users_utils.get_token(user_id=new_user.id)
+
+        await redis.set(name=f'{str(new_user.id)}/agent:{user_agent}', value=token, expire=2_592_000)
+
+        return CreateUserResponse(token=token, user=new_user)
+
+    raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
 
-async def logout_user(token: str, user_agent: str, db: AsyncSession, redis: AsyncRedis) -> str:
+async def logout_user(token: str, user_agent: str, redis: AsyncRedis) -> str:
     """Logout user."""
-    user_id_str = str(
-        (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
-    )
+    user_id = await generally_utils.get_user_id_by_token(token=token, user_agent=user_agent, redis=redis)
+
+    user_id_str = str(user_id)
 
     await redis.delete(f'{user_id_str}/agent:{user_agent}')
 
@@ -96,10 +142,9 @@ async def login_user(
     if not password_correct:
         raise Logger.create_response_error(error_key='password_not_correct', is_cookie_remove=False)
 
-    user_id_str = str(user.id)
-
     token = users_utils.get_token(user_id=user.id)
 
+    user_id_str = str(user.id)
     await redis.set(name=f'{user_id_str}/agent:{user_agent}', value=token, expire=2_592_000)
 
     return token

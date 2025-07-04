@@ -1,14 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
-from src.models import Base, RoleEnum
+from src.models import Base, NNRoleEnum
 
 
 class MessageBaseModel(Base):
     """Base message model."""
 
     id: int | None = None
-    role: RoleEnum
+    role: NNRoleEnum
     content: str
 
 
@@ -29,8 +29,8 @@ class GptResponseModel(Base):
 
     request_tokens: int
     response_tokens: int
-    message: str
     result: str
+    created_at: str
 
 
 class ChatBaseModel(Base):
@@ -50,6 +50,8 @@ class ChatGetModel(ChatCreateModel):
 
     id: int
     is_archived: bool
+    count_request_tokens: int
+    count_response_tokens: int
     created_at: datetime
     updated_at: datetime
 

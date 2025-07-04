@@ -3,7 +3,6 @@ from typing import Annotated, AsyncGenerator, Awaitable, Optional
 from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
 
 from src.config import settings
 from src.gpt.utils import save_expired_chat
@@ -12,12 +11,6 @@ redis_client: Redis | None = None
 engine = create_async_engine(settings.database_url)
 
 session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
-
-
-class SqlalchemyBase(DeclarativeBase):
-    """Base class for all sqlalchemy schemes."""
-
-    pass
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -59,8 +52,11 @@ async def listen_redis_chat_expired() -> None:
     pubsub = redis_client.pubsub()
     await pubsub.psubscribe('__keyevent@0__:expired')
     async for message in pubsub.listen():
-        print(message)
-        await save_expired_chat(message=message, redis=redis_client)
+        if redis_client is None:
+            raise RuntimeError('Redis client is not initialized')
+        if message['type'] == 'pmessage':
+            if message['data'].startswith('notifications/delete='):
+                await save_expired_chat(message=message, session_factory=session_factory, redis=redis_client)
 
 
 class AsyncRedis:

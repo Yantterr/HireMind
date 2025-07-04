@@ -15,9 +15,17 @@ class MessageModel(Base):
     message: str
 
 
-class RoleEnum(StrEnum):
+class NNRoleEnum(StrEnum):
     """Role enum."""
 
     USER = 'user'
     SYSTEM = 'system'
     ASSISTANT = 'assistant'
+
+
+class SystemRoleEnum(StrEnum):
+    """Role enum."""
+
+    ADMIN = 'admin'
+    USER = 'user'
+    ANONYM = 'anonym'
