@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -13,15 +14,15 @@ from src.users.router import users_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Life span of redis."""
+    """Application startup and shutdown lifecycle."""
     await init_redis()
     listener_task = asyncio.create_task(listen_redis_chat_expired())
     yield
     listener_task.cancel()
-    try:
+
+    with contextlib.suppress(asyncio.CancelledError):
         await listener_task
-    except asyncio.CancelledError:
-        pass
+
     await close_redis()
 
 

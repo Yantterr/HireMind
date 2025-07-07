@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Class all settings."""
+    """Application configuration settings loaded from environment variables or a .env file."""
 
     sqlite_file: str = 'database.db'
 
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        """Get database url."""
+        """Construct the full database URL for SQLAlchemy connection with aiosqlite driver."""
         return f'sqlite+aiosqlite:///./{self.sqlite_file}'
 
     model_config = SettingsConfigDict(env_file='.env')

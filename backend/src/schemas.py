@@ -6,13 +6,13 @@ from src.models import NNRoleEnum, SystemRoleEnum
 
 
 class SqlalchemyBase(DeclarativeBase):
-    """Base class for all sqlalchemy schemes."""
+    """Base class for all SQLAlchemy ORM models."""
 
     pass
 
 
 class UserSchema(SqlalchemyBase):
-    """Sqlalchemy schema of user."""
+    """ORM model representing a user."""
 
     __tablename__ = 'users'
 
@@ -35,7 +35,7 @@ class UserSchema(SqlalchemyBase):
 
 
 class ChatSchema(SqlalchemyBase):
-    """Sqlalchemy schema of user."""
+    """ORM model representing a chat session."""
 
     __tablename__ = 'chats'
 
@@ -59,7 +59,7 @@ class ChatSchema(SqlalchemyBase):
 
 
 class MessageSchema(SqlalchemyBase):
-    """Sqlalchemy schema of message."""
+    """ORM model representing a message within a chat."""
 
     __tablename__ = 'messages'
 
@@ -72,7 +72,7 @@ class MessageSchema(SqlalchemyBase):
 
 
 class AnonymousUserSchema(SqlalchemyBase):
-    """Sqlalchemy schema of anonymous user."""
+    """ORM model representing an anonymous user mapping."""
 
     __tablename__ = 'anonymous_users'
 

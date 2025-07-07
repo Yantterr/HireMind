@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Response
 
 import src.users.dependencies as users_dep
+import src.utils as generally_utils
 from src.config import settings
 from src.database import RedisDep, SessionDep
 from src.logger import Logger
@@ -15,11 +16,9 @@ users_router = APIRouter(
 
 
 @users_router.get('/', response_model=list[UserModel])
-async def get_users(
-    db: SessionDep,
-) -> list[UserSchema]:
-    """Endpoint for get all users."""
-    users: list[UserSchema] = await users_dep.get_users(db=db)
+async def get_users(db: SessionDep) -> list[UserSchema]:
+    """Get all users."""
+    users = await users_dep.get_users(db=db)
     return users
 
 
@@ -30,13 +29,8 @@ async def get_current_user(
     db: SessionDep,
     redis: RedisDep,
 ) -> UserSchema:
-    """Get user by cookie token."""
-    user_agent = request.headers.get('user-agent')
-    token = request.cookies.get('token')
-    hash = request.query_params.get('hash')
-
-    if (not token and not hash) or not user_agent:
-        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
+    """Get current user by token from cookie."""
+    token, hash, user_agent = await generally_utils.get_authorization_data(request=request)
 
     result = await users_dep.get_current_user(token=token, hash=hash, db=db, redis=redis, user_agent=user_agent)
 
@@ -56,10 +50,9 @@ async def get_current_user(
 async def login_user(
     request: Request, response: Response, db: SessionDep, redis: RedisDep, login_data: UserLoginModel
 ) -> MessageModel:
-    """Login user."""
+    """Authenticate user and set token cookie."""
     user_agent = request.headers.get('user-agent')
-
-    if user_agent is None:
+    if not user_agent:
         raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
 
     token = await users_dep.login_user(db=db, redis=redis, user_agent=user_agent, login_data=login_data)
@@ -78,11 +71,11 @@ async def login_user(
 
 @users_router.post('/logout', response_model=MessageModel)
 async def logout_user(request: Request, response: Response, redis: RedisDep) -> MessageModel:
-    """Logout user."""
+    """Logout user by deleting token cookie and invalidating token."""
     token = request.cookies.get('token')
     user_agent = request.headers.get('user-agent')
 
-    if token is None or user_agent is None:
+    if not token or not user_agent:
         raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
     message = await users_dep.logout_user(token=token, user_agent=user_agent, redis=redis)
@@ -93,11 +86,11 @@ async def logout_user(request: Request, response: Response, redis: RedisDep) -> 
 
 @users_router.post('/refresh', response_model=MessageModel)
 async def refresh_token(request: Request, response: Response, db: SessionDep, redis: RedisDep) -> MessageModel:
-    """Refresh jwt token."""
+    """Refresh JWT token and update cookie."""
     token = request.cookies.get('token')
     user_agent = request.headers.get('user-agent')
 
-    if not user_agent or not token:
+    if not token or not user_agent:
         raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
     new_token = await users_dep.refresh_token(user_agent=user_agent, db=db, redis=redis, token=token)
@@ -111,19 +104,15 @@ async def refresh_token(request: Request, response: Response, db: SessionDep, re
         samesite='lax',
     )
 
-    return MessageModel(message='Token was refreshed successful.')
+    return MessageModel(message='Token was refreshed successfully.')
 
 
 @users_router.post('/', response_model=UserModel)
 async def create_user(
     request: Request, response: Response, db: SessionDep, redis: RedisDep, user_create_data: UserCreateModel
 ) -> UserSchema:
-    """Create user."""
-    user_agent = request.headers.get('user-agent')
-    hash = request.query_params.get('hash')
-
-    if user_agent is None:
-        raise Logger.create_response_error(error_key='undefined_error', is_cookie_remove=False)
+    """Create a new user and set token cookie."""
+    _, hash, user_agent = await generally_utils.get_authorization_data(request=request)
 
     result = await users_dep.create_user(
         db=db, user_agent=user_agent, hash=hash, redis=redis, user_create_data=user_create_data
@@ -143,6 +132,6 @@ async def create_user(
 
 @users_router.get('/{user_id}', response_model=UserModel)
 async def get_user(db: SessionDep, user_id: int) -> UserSchema:
-    """Get user by id."""
+    """Get user by ID."""
     user = await users_dep.get_user(db=db, user_id=user_id)
     return user

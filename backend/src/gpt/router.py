@@ -15,10 +15,9 @@ gpt_router = APIRouter(
 
 @gpt_router.get('/', response_model=list[ChatGetModel])
 async def get_all_chats(request: Request, redis: RedisDep, db: SessionDep) -> list[ChatSchema]:
-    """Get all gpt chats."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
-    all_chats = await gpt_dep.get_all_chats(redis=redis, db=db, token=token, user_agent=user_agent)
-
+    """Get all GPT chats for the authorized user."""
+    token, hash, user_agent = await generally_utils.get_authorization_data(request=request)
+    all_chats = await gpt_dep.get_all_chats(redis=redis, db=db, token=token, hash=hash, user_agent=user_agent)
     return all_chats
 
 
@@ -26,29 +25,30 @@ async def get_all_chats(request: Request, redis: RedisDep, db: SessionDep) -> li
 async def create_chat(
     create_chat_data: ChatCreateModel, request: Request, redis: RedisDep, db: SessionDep
 ) -> ChatSchema:
-    """Create gpt chat."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
+    """Create a new GPT chat."""
+    token, hash, user_agent = await generally_utils.get_authorization_data(request=request)
     res = await gpt_dep.create_chat(
-        token=token, create_chat_data=create_chat_data, user_agent=user_agent, redis=redis, db=db
+        token=token, hash=hash, create_chat_data=create_chat_data, user_agent=user_agent, redis=redis, db=db
     )
     return res
 
 
 @gpt_router.get('/{chat_id}', response_model=ChatModel)
 async def get_chat(request: Request, redis: RedisDep, db: SessionDep) -> ChatSchema:
-    """Get gpt chat by id."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
+    """Get GPT chat by ID."""
+    token, hash, user_agent = await generally_utils.get_authorization_data(request=request)
     chat_id = int(request.path_params['chat_id'])
-    chat = await gpt_dep.get_chat_by_id(chat_id=chat_id, token=token, user_agent=user_agent, redis=redis, db=db)
-
+    chat = await gpt_dep.get_chat_by_id(
+        chat_id=chat_id, token=token, hash=hash, user_agent=user_agent, redis=redis, db=db
+    )
     return chat
 
 
 @gpt_router.delete('/{chat_id}', response_model=MessageModel)
 async def delete_chat(request: Request, redis: RedisDep, db: SessionDep, chat_id: int) -> MessageModel:
-    """Delete gpt chat by id."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
-    res = await gpt_dep.delete_chat(chat_id=chat_id, token=token, user_agent=user_agent, redis=redis, db=db)
+    """Delete GPT chat by ID (soft delete)."""
+    token, hash, user_agent = await generally_utils.get_authorization_data(request=request)
+    res = await gpt_dep.delete_chat(chat_id=chat_id, hash=hash, token=token, user_agent=user_agent, redis=redis, db=db)
     return res
 
 
@@ -56,9 +56,9 @@ async def delete_chat(request: Request, redis: RedisDep, db: SessionDep, chat_id
 async def update_chat(
     request: Request, message: MessageCreateModel, redis: RedisDep, db: SessionDep, chat_id: int
 ) -> ChatModel:
-    """Update gpt chat by id."""
-    token, user_agent = await generally_utils.validate_login_data(request=request)
+    """Add a message to GPT chat by ID."""
+    token, hash, user_agent = await generally_utils.get_authorization_data(request=request)
     res = await gpt_dep.send_message(
-        chat_id=chat_id, message=message, db=db, token=token, user_agent=user_agent, redis=redis
+        chat_id=chat_id, message=message, db=db, token=token, hash=hash, user_agent=user_agent, redis=redis
     )
     return res

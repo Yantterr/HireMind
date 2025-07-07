@@ -14,7 +14,7 @@ session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Get sqlalchemy session."""
+    """Provide a SQLAlchemy asynchronous session generator."""
     async with session_factory() as session:
         try:
             yield session
@@ -23,7 +23,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_redis() -> None:
-    """Initialization redis."""
+    """Initialization the Redis client connection with parameters from settings."""
     global redis_client
     redis_client = Redis(
         host=settings.redis_host,
@@ -36,7 +36,7 @@ async def init_redis() -> None:
 
 
 async def close_redis() -> None:
-    """Close redis connect."""
+    """Close redis client connect."""
     global redis_client
     if redis_client is not None:
         await redis_client.close()
@@ -44,7 +44,10 @@ async def close_redis() -> None:
 
 
 async def listen_redis_chat_expired() -> None:
-    """Listen redis chat expired."""
+    """Listen for Redis key expiration events.
+
+    When a key matching pattern 'notifications/delete=' expires, it triggers the "save_expired_chat" handler.
+    """
     global redis_client
     if redis_client is None:
         raise RuntimeError('Redis client is not initialized')
@@ -60,80 +63,44 @@ async def listen_redis_chat_expired() -> None:
 
 
 class AsyncRedis:
-    """Async performance of redis."""
+    """Wrapper class to provide async Redis operations with type Awaitable."""
 
     def __init__(self, redis_engine: Redis):
         self.redis_engine = redis_engine
 
     def exists(self, value: str) -> Awaitable[bool]:
-        """Async version of exists."""
+        """Check asynchronously if a key exists in Redis."""
         result = self.redis_engine.exists(value)
         assert isinstance(result, Awaitable)
         return result
 
     def delete(self, *value: str) -> Awaitable[bool]:
-        """Async version of delete."""
+        """Delete asynchronously keys in Redis."""
         result = self.redis_engine.delete(*value)
         assert isinstance(result, Awaitable)
         return result
 
     def get(self, value: str) -> Awaitable[Optional[str]]:
-        """Async version of get."""
+        """Get asynchronously a key from Redis."""
         result = self.redis_engine.get(value)
         assert isinstance(result, Awaitable)
         return result
 
     def set(self, name: str, value: str, expire: int) -> Awaitable[str]:
-        """Async version of set."""
+        """Set asynchronously a key in Redis."""
         result = self.redis_engine.set(name=name, value=value, ex=expire)
         assert isinstance(result, Awaitable)
         return result
 
     def keys(self, pattern: str) -> Awaitable[list[str]]:
-        """Async version of keys."""
+        """Get asynchronously all keys matching a pattern in Redis."""
         result = self.redis_engine.keys(pattern)
-        assert isinstance(result, Awaitable)
-        return result
-
-    def hexists(self, name: str, key: str) -> Awaitable[bool]:
-        """Async version of hexists."""
-        result = self.redis_engine.hexists(name=name, key=key)
-        assert isinstance(result, Awaitable)
-        return result
-
-    def hexpire(self, name: str, field: str, time: int) -> Awaitable[bool]:
-        """Async version of hexpire."""
-        result = self.redis_engine.hexpire(name, time, field)
-        assert isinstance(result, Awaitable)
-        return result
-
-    def hgetall(self, name: str) -> Awaitable[dict[str, str]]:
-        """Async version of hgetall."""
-        result = self.redis_engine.hgetall(name=name)
-        assert isinstance(result, Awaitable)
-        return result
-
-    def hget(self, name: str, key: str) -> Awaitable[Optional[str]]:
-        """Async version of hget."""
-        result = self.redis_engine.hget(name=name, key=key)
-        assert isinstance(result, Awaitable)
-        return result
-
-    def hset(self, name: str, key: str, value: str) -> Awaitable[int]:
-        """Async version of hset."""
-        result = self.redis_engine.hset(name=name, value=value, key=key)
-        assert isinstance(result, Awaitable)
-        return result
-
-    def hdel(self, name: str, *keys: str) -> Awaitable[int]:
-        """Async version of hdel."""
-        result = self.redis_engine.hdel(name, *keys)
         assert isinstance(result, Awaitable)
         return result
 
 
 def get_redis() -> AsyncRedis:
-    """Get async redis."""
+    """Get async Redis client."""
     if redis_client is None:
         raise RuntimeError('Redis client is not initialized')
     return AsyncRedis(redis_client)

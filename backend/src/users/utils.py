@@ -2,14 +2,13 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 from bcrypt import gensalt, hashpw
-from fastapi import HTTPException, status
 
 from src.config import settings
 from src.logger import Logger
 
 
 def get_password_hash(password: str) -> str:
-    """Generate hashed password."""
+    """Hash a plaintext password using bcrypt with salt."""
     salt = gensalt(10)
 
     hashed_password = hashpw(password.encode('utf-8'), salt)
@@ -18,7 +17,7 @@ def get_password_hash(password: str) -> str:
 
 
 def get_token(user_id: int) -> str:
-    """Create jwt token."""
+    """Generate a JWT token with user ID and expiration."""
     expire = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
     encoded_jwt = jwt.encode(
         payload={'sub': str(user_id), 'exp': int(expire.timestamp())},
@@ -29,7 +28,7 @@ def get_token(user_id: int) -> str:
 
 
 def decode_token(token: str) -> int:
-    """Decode jwt token from str to int."""
+    """Decode JWT token and extract user ID, handling expiration and errors."""
     try:
         token_bytes = token.encode('utf-8')
 
@@ -48,7 +47,7 @@ def decode_token(token: str) -> int:
 
 
 def verify_password(password: str, hashed_password: str) -> bool:
-    """Check is password hashed equal password."""
+    """Verify a plaintext password against its bcrypt hashed version."""
     is_valid = hashpw(
         password=password.encode('utf-8'), salt=hashed_password.encode('utf-8')
     ) == hashed_password.encode('utf-8')

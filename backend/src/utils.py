@@ -13,7 +13,7 @@ from src.schemas import UserSchema
 
 
 async def get_user_id_by_token(token: str, user_agent: str, redis: AsyncRedis) -> int:
-    """Authorize user by token."""
+    """Validate token and user agent in Redis and return user ID."""
     user_id = users_utils.decode_token(token=token)
     user_id_str = str(user_id)
 
@@ -38,7 +38,7 @@ async def get_user_by_hash(
     hash: str,
     db: AsyncSession,
 ) -> UserSchema:
-    """Get user by hash."""
+    """Get or create anonymous user by hash."""
     user_id = await anonymous_service.get_user_id(db=db, hash=hash)
 
     if user_id:
@@ -55,7 +55,7 @@ async def get_user_by_hash(
 
 
 async def save_token(user_id: int, user_agent: str, redis: AsyncRedis) -> str:
-    """Save token to redis."""
+    """Generate and save JWT token in Redis."""
     token = users_utils.get_token(user_id=user_id)
 
     user_id_str = str(user_id)
@@ -65,56 +65,25 @@ async def save_token(user_id: int, user_agent: str, redis: AsyncRedis) -> str:
     return token
 
 
-# async def authorize_user(token: str, user_agent: str, db: AsyncSession, redis: AsyncRedis) -> UserModel:
-#     """Authorize user."""
-#     if not token:
-#         raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
+async def get_user_id(
+    hash: Optional[str], token: Optional[str], user_agent: str, redis: AsyncRedis, db: AsyncSession
+) -> int:
+    """Get user ID by token or hash, raise if missing."""
+    if token:
+        return await get_user_id_by_token(token=token, user_agent=user_agent, redis=redis)
+    elif hash:
+        return (await get_user_by_hash(hash=hash, db=db)).id
 
-#     user_id = users_utils.decode_token(token=token)
-#     user_id_str = str(user_id)
-
-#     composite_key = f'{user_id_str}/agent:{user_agent}'
-
-#     allowed_composite_keys = await redis.keys(pattern=f'{user_id_str}/agent:*')
-
-#     redis_token = await redis.get(value=f'{user_id_str}/agent:{user_agent}')
-
-#     if composite_key not in allowed_composite_keys:
-#         raise Logger.create_response_error(error_key='user_not_found', is_cookie_remove=True)
-
-#     if redis_token != token:
-#         await redis.delete(*allowed_composite_keys)
-
-#         raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=True)
-
-#     user = await users_service.get_user(db=db, user_id=user_id)
-
-#     if user is None:
-#         raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=True)
-
-#     return UserModel(username=user.username, role=SystemRoleEnum(user.role), id=user.id)
+    raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
 
-# async def validate_login_data(request: Request, redis: AsyncRedis, db: AsyncSession) -> tuple[str, str]:
-#     """Validate login data."""
-#     token = request.cookies.get('token')
-#     hash = request.query_params.get('hash')
+async def get_authorization_data(request: Request) -> tuple[Optional[str], Optional[str], str]:
+    """Extract token, hash, and user-agent from request."""
+    token = request.cookies.get('token')
+    hash = request.query_params.get('hash')
+    user_agent = request.headers.get('user-agent')
 
-#     if not token and not hash:
-#         raise Logger.create_response_error(error_key='user_not_authenticated')
+    if not user_agent or (not token and not hash):
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
-#     user_agent = request.headers.get('user-agent')
-
-#     if user_agent is None:
-#         raise Logger.create_response_error(error_key='undefined_error')
-
-#     if not token and hash:
-#         user_id = await users_service.get_user_id(db=db, hash=hash)
-#         if user_id:
-#             return await authorize_user(
-#                 token=users_utils.get_token(user_id=user_id), user_agent=user_agent, db=db, redis=redis
-#             )
-
-#         # token = users_utils.get_token(user_id=hash)
-
-#     return token, user_agent
+    return token, hash, user_agent

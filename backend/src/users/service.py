@@ -5,8 +5,7 @@ from sqlalchemy.future import select
 
 import src.users.utils as users_utils
 from src.models import SystemRoleEnum
-from src.schemas import AnonymousUserSchema, UserSchema
-from src.users.models import UserCreateModel
+from src.schemas import UserSchema
 
 
 async def get_users(db: AsyncSession) -> list[UserSchema]:

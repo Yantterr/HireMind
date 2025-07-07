@@ -1,5 +1,6 @@
 from datetime import datetime
 from json import dumps, loads
+from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,10 +15,15 @@ from src.schemas import ChatSchema
 
 
 async def create_chat(
-    create_chat_data: ChatCreateModel, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession
+    create_chat_data: ChatCreateModel,
+    token: Optional[str],
+    hash: Optional[str],
+    user_agent: str,
+    redis: AsyncRedis,
+    db: AsyncSession,
 ) -> ChatSchema:
     """Create gpt chat."""
-    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = await generally_utils.get_user_id(token=token, hash=hash, db=db, user_agent=user_agent, redis=redis)
 
     chat = await gpt_service.create_chat(db=db, title=create_chat_data.title, user_id=user_id)
 
@@ -30,18 +36,22 @@ async def create_chat(
     return chat
 
 
-async def get_all_chats(token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession) -> list[ChatSchema]:
+async def get_all_chats(
+    token: Optional[str], hash: Optional[str], user_agent: str, redis: AsyncRedis, db: AsyncSession
+) -> list[ChatSchema]:
     """Get all user chats."""
-    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = await generally_utils.get_user_id(token=token, hash=hash, db=db, user_agent=user_agent, redis=redis)
 
     chats = await gpt_service.get_all_chats(db=db, user_id=user_id)
 
     return chats
 
 
-async def get_chat_by_id(chat_id: int, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession) -> ChatSchema:
+async def get_chat_by_id(
+    chat_id: int, token: Optional[str], hash: Optional[str], user_agent: str, redis: AsyncRedis, db: AsyncSession
+) -> ChatSchema:
     """Get chat by id."""
-    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = await generally_utils.get_user_id(token=token, hash=hash, db=db, user_agent=user_agent, redis=redis)
 
     redis_chat = await redis.get(value=f'{user_id}/chat:{chat_id}')
     if redis_chat is not None:
@@ -57,9 +67,11 @@ async def get_chat_by_id(chat_id: int, token: str, user_agent: str, redis: Async
     return chat
 
 
-async def delete_chat(chat_id: int, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession) -> MessageModel:
+async def delete_chat(
+    chat_id: int, token: Optional[str], hash: Optional[str], user_agent: str, redis: AsyncRedis, db: AsyncSession
+) -> MessageModel:
     """Delete chat by id."""
-    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = await generally_utils.get_user_id(token=token, hash=hash, db=db, user_agent=user_agent, redis=redis)
 
     await redis.delete(f'{user_id}/chat:{chat_id}')
 
@@ -72,10 +84,16 @@ async def delete_chat(chat_id: int, token: str, user_agent: str, redis: AsyncRed
 
 
 async def send_message(
-    chat_id: int, message: MessageCreateModel, token: str, user_agent: str, redis: AsyncRedis, db: AsyncSession
+    chat_id: int,
+    message: MessageCreateModel,
+    token: Optional[str],
+    hash: Optional[str],
+    user_agent: str,
+    redis: AsyncRedis,
+    db: AsyncSession,
 ) -> ChatModel:
     """Send message to gpt chat."""
-    user_id = (await generally_utils.authorize_user(token=token, db=db, user_agent=user_agent, redis=redis)).id
+    user_id = await generally_utils.get_user_id(token=token, hash=hash, db=db, user_agent=user_agent, redis=redis)
 
     json_chat = await redis.get(value=f'{user_id}/chat:{chat_id}')
 
