@@ -1,9 +1,11 @@
+from dataclasses import dataclass
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 import src.users.utils as users_utils
+from src.logger import Logger
 from src.models import SystemRoleEnum
 from src.schemas import UserSchema
 
@@ -41,7 +43,7 @@ async def create_user(
     """Service for create user."""
     new_user = UserSchema(
         username=username,
-        password=users_utils.get_password_hash(password) if password is not None else None,
+        password=password,
         role=role,
     )
 
@@ -50,3 +52,26 @@ async def create_user(
     await db.refresh(new_user)
 
     return new_user
+
+
+async def edit_user(
+    db: AsyncSession, user_id: int, username: Optional[str], password: Optional[str], role: Optional[SystemRoleEnum]
+) -> UserSchema:
+    """Service for edit user."""
+    request = select(UserSchema).where(UserSchema.id == user_id)
+    result = await db.execute(request)
+    user = result.scalars().first()
+
+    if user is None:
+        raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
+
+    user.username = username
+    user.password = password
+
+    if role:
+        user.role = role
+
+    await db.commit()
+    await db.refresh(user)
+
+    return user

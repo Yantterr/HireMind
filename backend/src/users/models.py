@@ -6,7 +6,7 @@ from src.models import Base, SystemRoleEnum
 class BaseUserModel(Base):
     """Base user model with optional username."""
 
-    username: Optional[str]
+    username: Optional[str] = None
 
 
 class UserModel(BaseUserModel):
@@ -19,8 +19,7 @@ class UserModel(BaseUserModel):
 class UserCreateModel(BaseUserModel):
     """User creation model with optional password and role."""
 
-    password: Optional[str]
-    role: SystemRoleEnum
+    password: Optional[str] = None
 
 
 class UserLoginModel(Base):

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -25,8 +27,8 @@ class UserSchema(SqlalchemyBase):
         server_default=SystemRoleEnum.USER.value,
     )
 
-    username: Mapped[str] = mapped_column(unique=True, nullable=True)
-    password: Mapped[str] = mapped_column(String(128), nullable=True)
+    username: Mapped[Optional[str]] = mapped_column(unique=True, nullable=True)
+    password: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     chats: Mapped[list['ChatSchema']] = relationship('ChatSchema', back_populates='user', cascade='all, delete-orphan')
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[DateTime] = mapped_column(

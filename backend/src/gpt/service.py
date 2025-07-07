@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from src.database import AsyncSession
@@ -25,6 +25,18 @@ async def get_all_chats(user_id: int, db: AsyncSession) -> list[ChatSchema]:
     chats = result.scalars().all()
 
     return list(chats)
+
+
+async def get_count_chats(db: AsyncSession, user_id: int, is_archived: bool) -> int:
+    """Get the total number of non-archived or archived chats."""
+    stmt = (
+        select(func.count())
+        .select_from(ChatSchema)
+        .where(ChatSchema.is_archived == is_archived, ChatSchema.user_id == user_id)
+    )
+    result = await db.execute(stmt)
+    count = result.scalar_one()
+    return count
 
 
 async def get_chat_by_id(chat_id: int, user_id: int, db: AsyncSession) -> Optional[ChatSchema]:

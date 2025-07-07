@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 from fastapi import Request
@@ -65,14 +66,24 @@ async def save_token(user_id: int, user_agent: str, redis: AsyncRedis) -> str:
     return token
 
 
+@dataclass
+class get_user_id_response:
+    """Dataclass for user ID and role."""
+
+    user_id: int
+    role: str
+
+
 async def get_user_id(
     hash: Optional[str], token: Optional[str], user_agent: str, redis: AsyncRedis, db: AsyncSession
-) -> int:
+) -> get_user_id_response:
     """Get user ID by token or hash, raise if missing."""
     if token:
-        return await get_user_id_by_token(token=token, user_agent=user_agent, redis=redis)
+        user_id = await get_user_id_by_token(token=token, user_agent=user_agent, redis=redis)
+        return get_user_id_response(user_id=user_id, role='anonymous')
     elif hash:
-        return (await get_user_by_hash(hash=hash, db=db)).id
+        user_id = (await get_user_by_hash(hash=hash, db=db)).id
+        return get_user_id_response(user_id=user_id, role='anonymous')
 
     raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 

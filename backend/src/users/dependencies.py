@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import src.anonymous.service as anonymous_service
 import src.users.service as users_service
 import src.users.utils as users_utils
 import src.utils as generally_utils
@@ -92,24 +93,34 @@ async def create_user(
         token = users_utils.get_token(user_id=user.id)
 
         await redis.set(name=f'{str(user.id)}/agent:{user_agent}', value=token, expire=2_592_000)
-
         return CreateUserResponse(token=token, user=user)
 
     if user_create_data.username and user_create_data.password:
-        user = await users_service.get_user_by_username(db=db, username=user_create_data.username)
+        old_user = await users_service.get_user_by_username(db=db, username=user_create_data.username)
 
-        if user is not None:
+        if not old_user and not hash:
             raise Logger.create_response_error(error_key='user_already_exists', is_cookie_remove=False)
 
-        new_user = await users_service.create_user(
-            db=db, role=SystemRoleEnum.USER, username=user_create_data.username, password=user_create_data.password
-        )
+        hashed_password = users_utils.get_password_hash(user_create_data.password)
+        if old_user is not None and old_user.role == 'anonym':
+            user = await users_service.edit_user(
+                db=db,
+                user_id=old_user.id,
+                username=user_create_data.username,
+                password=hashed_password,
+                role=SystemRoleEnum.USER,
+            )
 
-        token = users_utils.get_token(user_id=new_user.id)
+            await anonymous_service.delete_user_id(db=db, user_id=old_user.id)
+        else:
+            user = await users_service.create_user(
+                db=db, role=SystemRoleEnum.USER, username=user_create_data.username, password=hashed_password
+            )
 
-        await redis.set(name=f'{str(new_user.id)}/agent:{user_agent}', value=token, expire=2_592_000)
+        token = users_utils.get_token(user_id=user.id)
 
-        return CreateUserResponse(token=token, user=new_user)
+        await redis.set(name=f'{str(user.id)}/agent:{user_agent}', value=token, expire=2_592_000)
+        return CreateUserResponse(token=token, user=user)
 
     raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
@@ -136,6 +147,9 @@ async def login_user(
 
     if user is None:
         raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
+
+    if user.role == 'anonym' or not user.password or not user.username:
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
     password_correct = users_utils.verify_password(login_data.password, user.password)
 

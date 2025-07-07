@@ -1,3 +1,4 @@
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -25,3 +26,11 @@ async def save_user_id(db: AsyncSession, user_id: int, hash: str) -> bool:
     except Exception:
         print('Error save user id by hash')
         return False
+
+
+async def delete_user_id(db: AsyncSession, user_id: int) -> bool:
+    """Service for delete user id by hash."""
+    await db.execute(delete(AnonymousUserSchema).where(AnonymousUserSchema.user_id == user_id))
+    await db.commit()
+
+    return True
