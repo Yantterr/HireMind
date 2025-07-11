@@ -1,37 +1,42 @@
-from datetime import datetime
 from json import loads
 
-from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.schemas import MessageSchema
+import src.gpt.service as gpt_service
+from src.gpt.dataclassees import Chat, Message
+from src.logger import Logger
+from src.redis import AsyncRedis
 
 
-async def save_expired_chat(message: dict, session_factory: async_sessionmaker[AsyncSession], redis: Redis):
-    """Save new messages from expired Redis chat data to the database."""
-    try:
-        key = message['data'].split('=')[1]
-        chat_data_json = await redis.get(key)
-        if not chat_data_json:
-            print(f'No chat data found in Redis for key: {key}')
-            return
+async def get_chat(user_id: int, chat_id: int, db: AsyncSession, redis: AsyncRedis) -> Chat:
+    """Function to get chat data by id."""
+    redis_chat = await redis.get(value=f'{user_id}/chat:{chat_id}')
 
-        chat = loads(chat_data_json)
+    if redis_chat:
+        chat = loads(redis_chat)
+        return chat
+    else:
+        chat_schema = await gpt_service.get_chat_by_id(db=db, user_id=user_id, chat_id=chat_id)
+        if not chat_schema:
+            raise Logger.create_response_error(error_key='data_not_found')
 
-        objs = [
-            MessageSchema(
-                created_at=datetime.fromisoformat(msg['created_at']),
-                content=msg['content'],
-                role=msg['role'],
-                chat_id=chat['id'],
-            )
-            for msg in chat['messages']
-            if msg.get('id') is None
-        ]
+        chat = Chat(
+            id=chat_schema.id,
+            user_id=chat_schema.user_id,
+            count_request_tokens=chat_schema.count_request_tokens,
+            count_response_tokens=chat_schema.count_response_tokens,
+            messages=[
+                Message(
+                    id=message.id,
+                    role=message.role,
+                    content=message.content,
+                    created_at=message.created_at,
+                    chat_id=message.chat_id,
+                )
+                for message in chat_schema.messages
+            ],
+        )
 
-        async with session_factory() as session:
-            session.add_all(objs)
-            await session.commit()
+        chat.messages.sort(key=lambda msg: msg.created_at)
 
-    except Exception as e:
-        print(f'Error processing expired key in DB: {e}')
+        return chat

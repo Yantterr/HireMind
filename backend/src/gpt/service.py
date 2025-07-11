@@ -4,7 +4,18 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from src.database import AsyncSession
-from src.schemas import ChatSchema
+from src.schemas import ChatSchema, MessageSchema
+
+
+async def create_message(db: AsyncSession, chat_id: int, role: str, content: str) -> MessageSchema:
+    """Create a new message in the chat."""
+    new_message = MessageSchema(chat_id=chat_id, role=role, content=content)
+
+    db.add(new_message)
+    await db.commit()
+    await db.refresh(new_message)
+
+    return new_message
 
 
 async def create_chat(db: AsyncSession, user_id: int, title: Optional[str]) -> ChatSchema:

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from src.models import Base, SystemRoleEnum
+from src.models.generally import Base, SystemRoleEnum
 
 
 class BaseUserModel(Base):
@@ -14,18 +14,27 @@ class UserModel(BaseUserModel):
 
     id: int
     role: SystemRoleEnum
+    is_activated: bool
 
 
-class UserCreateModel(BaseUserModel):
+class UserCreateModel(Base):
     """User creation model with optional password and role."""
 
-    password: Optional[str] = None
+    email: str
+    username: str
+    password: str
+
+
+class UserConfirmEmailModel(Base):
+    """User confirm email model."""
+
+    key: int
 
 
 class UserLoginModel(Base):
     """User login model with required username and password."""
 
-    username: str
+    email: str
     password: str
 
 

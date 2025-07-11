@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import Field
+
 from src.models import Base, NNRoleEnum
 
 
@@ -24,15 +26,6 @@ class MessageGetModel(MessageCreateModel):
     created_at: datetime
 
 
-class GptResponseModel(Base):
-    """Model representing a neural network response."""
-
-    request_tokens: int
-    response_tokens: int
-    result: str
-    created_at: str
-
-
 class ChatBaseModel(Base):
     """Base chat model."""
 
@@ -43,6 +36,16 @@ class ChatCreateModel(ChatBaseModel):
     """Model for creating a chat with optional title."""
 
     title: Optional[str]
+
+    difficulty: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
+    politeness: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
+    friendliness: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
+    rigidity: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
+    detail_orientation: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
+    pacing: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
+    language: int = Field(
+        ge=0, le=9, description='Value must be between 0 and 9 inclusive. Represents the programming language used.'
+    )
 
 
 class ChatGetModel(ChatCreateModel):

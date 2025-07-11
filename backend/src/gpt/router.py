@@ -2,9 +2,11 @@ from fastapi import APIRouter, Request
 
 import src.gpt.dependencies as gpt_dep
 import src.utils as generally_utils
-from src.database import RedisDep, SessionDep
+from src.database import SessionDep
+from src.gpt.dataclassees import Chat
 from src.gpt.models import ChatCreateModel, ChatGetModel, ChatModel, MessageCreateModel
 from src.models import MessageModel
+from src.redis import RedisDep
 from src.schemas import ChatSchema
 
 gpt_router = APIRouter(
@@ -55,7 +57,7 @@ async def delete_chat(request: Request, redis: RedisDep, db: SessionDep, chat_id
 @gpt_router.post('/{chat_id}/messages', response_model=ChatModel)
 async def update_chat(
     request: Request, message: MessageCreateModel, redis: RedisDep, db: SessionDep, chat_id: int
-) -> ChatModel:
+) -> Chat:
     """Add a message to GPT chat by ID."""
     token, hash, user_agent = await generally_utils.get_authorization_data(request=request)
     res = await gpt_dep.send_message(
