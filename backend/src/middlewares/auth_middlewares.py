@@ -1,11 +1,11 @@
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-import src.utils.auth as auth_utils
+import src.utils.auth_utils as auth_utils
 from src.config import settings
 from src.database import session_factory
-from src.dataclasses.auth import UserDataclass
-from src.models.generally import SystemRoleEnum
+from src.dataclasses.auth_dataclasses import UserDataclass
+from src.models.generally_models import SystemRoleEnum
 from src.redis import get_redis
 from src.schemas import UserSchema
 

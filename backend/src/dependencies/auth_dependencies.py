@@ -2,8 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
-import src.utils.auth as auth_utils
-from src.dataclasses.auth import AuthDataclass
+import src.utils.auth_utils as auth_utils
+from src.dataclasses.auth_dataclasses import AuthDataclass
 from src.logger import Logger
 from src.redis import RedisDep
 

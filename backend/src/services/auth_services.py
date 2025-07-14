@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from src.logger import Logger
-from src.models.generally import SystemRoleEnum
+from src.models.generally_models import SystemRoleEnum
 from src.schemas import UserSchema
 
 

@@ -2,10 +2,11 @@ from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 
 from bcrypt import gensalt, hashpw
-from jwt import decode, encode
+from jwt import ExpiredSignatureError, decode, encode
 
 from src.config import settings
-from src.dataclasses.auth import UserDataclass
+from src.dataclasses.auth_dataclasses import UserDataclass
+from src.logger import Logger
 
 
 def get_token(user: UserDataclass) -> str:
@@ -27,16 +28,19 @@ def get_token(user: UserDataclass) -> str:
 
 
 def decode_token(token: str) -> UserDataclass:
-    """Decode JWT token and extract user ID, handling expiration and errors."""
-    token_bytes = token.encode('utf-8')
+    try:
+        """Decode JWT token and extract user ID, handling expiration and errors."""
+        token_bytes = token.encode('utf-8')
 
-    payload = decode(token_bytes, settings.jwt_secret_key.get_secret_value(), algorithms=[settings.jwt_algorithm])
-    if not payload:
-        raise ValueError("Token payload missing 'sub' field")
+        payload = decode(token_bytes, settings.jwt_secret_key.get_secret_value(), algorithms=[settings.jwt_algorithm])
+        if not payload:
+            raise ValueError("Token payload missing 'sub' field")
 
-    return UserDataclass(
-        username=payload['username'], is_activated=payload['is_activated'], id=payload['id'], role=payload['role']
-    )
+        return UserDataclass(
+            username=payload['username'], is_activated=payload['is_activated'], id=payload['id'], role=payload['role']
+        )
+    except ExpiredSignatureError as e:
+        raise Logger.create_response_error(error_key='token_expired', is_cookie_remove=False) from e
 
 
 def get_password_hash(password: str) -> str:

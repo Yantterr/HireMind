@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from src.dataclasses.generally import BaseDataclass
-from src.models.generally import SystemRoleEnum
+from src.dataclasses.generally_dataclasses import BaseDataclass
+from src.models.generally_models import SystemRoleEnum
 
 
 @dataclass

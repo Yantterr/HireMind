@@ -3,17 +3,16 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from fastapi_mail import MessageType
 
-import src.controllers.auth as auth_controllers
-import src.dependencies.auth as auth_dependencies
-import src.utils.generally as generally_utils
+import src.controllers.auth_controllers as auth_controllers
+import src.dependencies.auth_dependencies as auth_dependencies
+import src.utils.generally_utils as generally_utils
 from src.config import settings
 from src.database import SessionDep
-from src.dataclasses.auth import AuthDataclass, UserDataclass
+from src.dataclasses.auth_dataclasses import AuthDataclass, UserDataclass
 from src.logger import Logger
-from src.models.generally import MessageModel
-from src.models.user import UserConfirmEmailModel, UserCreateModel, UserLoginModel, UserModel
+from src.models.auth import UserConfirmEmailModel, UserCreateModel, UserLoginModel, UserModel
+from src.models.generally_models import MessageModel
 from src.redis import RedisDep
-from src.schemas import UserSchema
 
 auth_router = APIRouter(
     prefix='/auth',

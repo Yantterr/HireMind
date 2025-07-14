@@ -4,14 +4,13 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import src.services.auth as auth_service
-import src.utils.auth as auth_utils
-from src.dataclasses.auth import UserCreateDataclass, UserDataclass, UserLoginDataclass
+import src.services.auth_services as auth_service
+import src.utils.auth_utils as auth_utils
+from src.dataclasses.auth_dataclasses import UserCreateDataclass, UserDataclass, UserLoginDataclass
 from src.logger import Logger
-from src.models.generally import SystemRoleEnum
-from src.models.user import UserCreateModel, UserLoginModel
+from src.models.auth import UserCreateModel, UserLoginModel
+from src.models.generally_models import SystemRoleEnum
 from src.redis import AsyncRedis
-from src.schemas import UserSchema
 
 
 async def create_user(
@@ -56,6 +55,7 @@ async def create_user(
         token=new_token,
         key=int(key),
     )
+
 
 
 async def login_user(

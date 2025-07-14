@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, String, func, text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from src.models.generally import NNRoleEnum, SystemRoleEnum
+from src.models.generally_models import NNRoleEnum, SystemRoleEnum
 
 
 class SqlalchemyBase(DeclarativeBase):
@@ -55,8 +55,8 @@ class ChatSchema(SqlalchemyBase):
     count_request_tokens: Mapped[int] = mapped_column(default=0)
     count_response_tokens: Mapped[int] = mapped_column(default=0)
 
-    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
