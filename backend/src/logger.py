@@ -12,6 +12,7 @@ class Logger:
         'user_already_exists': (409, 'User already exists'),
         'password_not_correct': (401, 'Password not correct'),
         'undefined_error': (500, 'Undefined error'),
+        'token_expired': (401, 'Token expired'),
     }
 
     @staticmethod
