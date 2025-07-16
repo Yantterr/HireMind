@@ -1,14 +1,14 @@
-from datetime import datetime
 from json import loads
 from typing import Annotated, Awaitable, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import src.utils.gpt_utils as gpt_utils
 from redis.asyncio import Redis
 from src.config import settings
 from src.database import session_factory
-from src.schemas import MessageSchema
+from src.dataclasses.gpt_dataclasses import ChatDataclass
 
 redis_client: Redis | None = None
 
@@ -62,21 +62,10 @@ async def save_expired_chat(message: dict, session_factory: async_sessionmaker[A
             print(f'No chat data found in Redis for key: {key}')
             return
 
-        chat = loads(chat_data_json)
-
-        objs = [
-            MessageSchema(
-                created_at=datetime.fromisoformat(msg['created_at']),
-                content=msg['content'],
-                role=msg['role'],
-                chat_id=chat['id'],
-            )
-            for msg in chat['messages']
-            if msg.get('id') is None
-        ]
+        chat = ChatDataclass.from_dict(loads(chat_data_json))
 
         async with session_factory() as session:
-            session.add_all(objs)
+            await gpt_utils.save_messages(chat=chat, db=session)
             await session.commit()
 
     except Exception as e:

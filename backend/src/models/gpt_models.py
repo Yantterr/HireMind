@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import Field
 
@@ -9,10 +8,17 @@ from src.models.generally_models import Base, NNRoleEnum
 class MessageModel(Base):
     """Response model containing a message string."""
 
-    id: int
+    id: int | None
     role: NNRoleEnum
     content: str
     created_at: datetime
+
+
+class EventModel(Base):
+    """Response model containing a chat event."""
+
+    id: int
+    content: str
 
 
 class ChatModel(Base):
@@ -22,6 +28,7 @@ class ChatModel(Base):
     title: str
     is_archived: bool
     messages: list[MessageModel]
+    events: list[EventModel]
     count_request_tokens: int
     count_response_tokens: int
     created_at: datetime
@@ -32,7 +39,12 @@ class ChatCreateModel(Base):
     """Model for creating a chat with optional title."""
 
     title: str
-    role: NNRoleEnum
+
+    progression_type: int = Field(
+        ge=0,
+        le=1,
+        description='Value must be between 0 and 1 inclusive. 0 - arithmetic progression, 1 - geometric progression.',
+    )
 
     difficulty: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
     politeness: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
@@ -43,3 +55,25 @@ class ChatCreateModel(Base):
     language: int = Field(
         ge=0, le=9, description='Value must be between 0 and 9 inclusive. Represents the programming language used.'
     )
+
+
+class MessageCreateModel(Base):
+    """Model for creating a message."""
+
+    role: NNRoleEnum
+    content: str
+
+
+class EventCreateModel(Base):
+    """Model for create a event."""
+
+    content: str
+
+
+class NNResponseModel(Base):
+    """Response model containing a message string."""
+
+    count_request_tokens: int
+    count_response_tokens: int
+    role: NNRoleEnum
+    content: str

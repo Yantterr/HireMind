@@ -17,11 +17,12 @@ async def create_user(
     user_create_data: UserCreateModel, token: Optional[str], user_agent: str, db: AsyncSession, redis: AsyncRedis
 ) -> UserCreateDataclass:
     """Create a new user."""
-    hashed_password = auth_utils.get_password_hash(user_create_data.password)
-
-    if await auth_service.get_user_by_email(db=db, email=user_create_data.email):
+    if await auth_service.get_user_by_email(
+        db=db, email=user_create_data.email
+    ) or await auth_service.get_user_by_username(db=db, username=user_create_data.username):
         raise Logger.create_response_error(error_key='user_already_exists', is_cookie_remove=False)
 
+    hashed_password = auth_utils.get_password_hash(user_create_data.password)
     if token:
         user = auth_utils.decode_token(token=token)
         if user.role != SystemRoleEnum.ANONYM:
@@ -55,7 +56,6 @@ async def create_user(
         token=new_token,
         key=int(key),
     )
-
 
 
 async def login_user(

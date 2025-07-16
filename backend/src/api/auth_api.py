@@ -44,6 +44,7 @@ async def create_user(
         generally_utils.send_email_message, user_create_data.email, str(result.key), MessageType.plain
     )
 
+    response.delete_cookie('token')
     response.set_cookie(value=result.token, **settings.auth_token_config)
 
     return result.user

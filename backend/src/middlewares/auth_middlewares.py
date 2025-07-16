@@ -20,8 +20,8 @@ class AnonymousUserTokenMiddleware(BaseHTTPMiddleware):
     ):
         """Check token in cookie."""
         if (
-            (request.url.path == '/auth' and request.method == 'POST')
-            or request.url.path == '/auth/login'
+            (request.url.path == '/auth/' and request.method == 'POST')
+            or request.url.path == '/auth/login/'
             or request.cookies.get('token')
         ):
             return await call_next(request)

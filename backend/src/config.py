@@ -47,8 +47,6 @@ class Settings(BaseSettings):
         """Construct the full database URL for SQLAlchemy connection with aiosqlite driver."""
         return f'sqlite+aiosqlite:///./{self.sqlite_file}'
 
-    model_config = SettingsConfigDict(env_file='.env')
-
     @property
     def auth_token_config(self) -> dict:
         """Construct a cookie token configuration for FastAPI."""
@@ -59,6 +57,8 @@ class Settings(BaseSettings):
             'secure': False,
             'samesite': 'lax',
         }
+
+    model_config = SettingsConfigDict(env_file='.env')
 
 
 NNConfig = {
