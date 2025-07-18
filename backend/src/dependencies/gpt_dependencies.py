@@ -4,7 +4,6 @@ from typing import Annotated
 
 from fastapi import Depends
 
-import src.dependencies.auth_dependencies as auth_dependencies
 import src.services.gpt_services as gpt_service
 from src.database import SessionDep
 from src.dataclasses.auth_dataclasses import AuthDataclass

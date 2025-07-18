@@ -1,17 +1,16 @@
-from typing import Annotated
-
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Request, Response
 from fastapi_mail import MessageType
 
 import src.controllers.auth_controllers as auth_controllers
-import src.dependencies.auth_dependencies as auth_dependencies
+import src.services.auth_services as auth_service
+import src.utils.auth_utils as auth_utils
 import src.utils.generally_utils as generally_utils
 from src.config import settings
 from src.database import SessionDep
-from src.dataclasses.auth_dataclasses import AuthDataclass, UserDataclass
+from src.dataclasses.auth_dataclasses import UserDataclass
 from src.logger import Logger
 from src.models.auth import UserConfirmEmailModel, UserCreateModel, UserLoginModel, UserModel
-from src.models.generally_models import MessageModel
+from src.models.generally_models import ResponseModel
 from src.redis import RedisDep
 
 auth_router = APIRouter(
@@ -37,7 +36,11 @@ async def create_user(
         raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
     result = await auth_controllers.create_user(
-        user_create_data=user_create_data, token=token, user_agent=user_agent, db=db, redis=redis
+        user_create_data=user_create_data,
+        token=token,
+        user_agent=user_agent,
+        db=db,
+        redis=redis,
     )
 
     background_tasks.add_task(
@@ -65,58 +68,73 @@ async def login_user(
     return result.user
 
 
-@auth_router.post('/logout', response_model=MessageModel)
+@auth_router.post('/logout', response_model=ResponseModel)
 async def logout_user(
     response: Response,
+    request: Request,
     redis: RedisDep,
-    auth_data: Annotated[AuthDataclass, Depends(auth_dependencies.get_current_user)],
-) -> MessageModel:
+) -> ResponseModel:
     """Logout user."""
-    message = await auth_controllers.logout_user(
-        user_id=auth_data.user.id, user_agent=auth_data.user_agent, redis=redis
-    )
+    auth_info = auth_utils.get_validated_auth_info(request)
+    if auth_info.error:
+        raise Logger.create_response_error(error_key=auth_info.error, is_cookie_remove=False)
+
+    user = request.state.user
+    message = await auth_controllers.logout_user(user_id=user.id, user_agent=auth_info.user_agent, redis=redis)
 
     response.delete_cookie(key='token')
 
-    return MessageModel(message=message)
+    return ResponseModel(message=message)
 
 
 @auth_router.get('/me', response_model=UserModel)
 async def get_current_user(
-    auth_data: Annotated[AuthDataclass, Depends(auth_dependencies.get_current_user)],
+    request: Request,
 ) -> UserDataclass:
     """Get current user by token from cookie."""
-    return auth_data.user
-
-
-@auth_router.post('/refresh', response_model=UserModel)
-async def refresh_token(
-    response: Response,
-    redis: RedisDep,
-    auth_data: Annotated[AuthDataclass, Depends(auth_dependencies.get_current_user)],
-) -> UserDataclass:
-    """Refresh JWT token and update cookie."""
-    user = auth_data.user
-
-    new_token = await auth_controllers.refresh_token(user=user, user_agent=auth_data.user_agent, redis=redis)
-    response.set_cookie(value=new_token, **settings.auth_token_config)
-
+    user = request.state.user
     return user
+
+
+@auth_router.get('/key', response_model=ResponseModel)
+async def get_new_key(
+    request: Request,
+    redis: RedisDep,
+    db: SessionDep,
+    background_tasks: BackgroundTasks,
+) -> ResponseModel:
+    """Get new key for email confirmation."""
+    auth_info = auth_utils.get_validated_auth_info(request)
+    user_state = request.state.user
+
+    new_key = await auth_controllers.email_new_key(user_agent=auth_info.user_agent, user_id=user_state.id, redis=redis)
+    user_orm = await auth_service.get_user(db=db, user_id=user_state.id)
+
+    if not user_orm or not user_orm.email:
+        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
+
+    background_tasks.add_task(generally_utils.send_email_message, user_orm.email, str(new_key), MessageType.plain)
+
+    return ResponseModel(message='New key was generated successfully.')
 
 
 @auth_router.patch('/confirm_email', response_model=UserModel)
 async def confirm_email(
+    request: Request,
     response: Response,
     confirm_email_data: UserConfirmEmailModel,
     db: SessionDep,
     redis: RedisDep,
-    auth_data: Annotated[AuthDataclass, Depends(auth_dependencies.get_current_user)],
 ) -> UserDataclass:
     """Confirm email."""
+    auth_info = auth_utils.get_validated_auth_info(request)
+    if auth_info.error:
+        raise Logger.create_response_error(error_key=auth_info.error, is_cookie_remove=False)
+
+    user = request.state.user
     result = await auth_controllers.confirm_email(
-        user_id=auth_data.user.id, user_agent=auth_data.user_agent, key=confirm_email_data.key, db=db, redis=redis
+        user_id=user.id, user_agent=auth_info.user_agent, key=confirm_email_data.key, db=db, redis=redis
     )
 
     response.set_cookie(value=result.token, **settings.auth_token_config)
-
     return result.user

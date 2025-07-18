@@ -1,5 +1,3 @@
-from secrets import choice
-from string import digits
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +12,11 @@ from src.redis import AsyncRedis
 
 
 async def create_user(
-    user_create_data: UserCreateModel, token: Optional[str], user_agent: str, db: AsyncSession, redis: AsyncRedis
+    user_create_data: UserCreateModel,
+    token: Optional[str],
+    user_agent: str,
+    db: AsyncSession,
+    redis: AsyncRedis,
 ) -> UserCreateDataclass:
     """Create a new user."""
     if await auth_service.get_user_by_email(
@@ -24,20 +26,21 @@ async def create_user(
 
     hashed_password = auth_utils.get_password_hash(user_create_data.password)
     if token:
-        user = auth_utils.decode_token(token=token)
-        if user.role != SystemRoleEnum.ANONYM:
+        user_dataclass_old, _ = auth_utils.token_expire_verify(token=token)
+        if user_dataclass_old.role != SystemRoleEnum.ANONYM:
             raise Logger.create_response_error(error_key='user_already_exists', is_cookie_remove=False)
 
-        user = await auth_service.edit_user(
+        user_orm = await auth_service.edit_user(
             db=db,
-            user_id=user.id,
+            user_id=user_dataclass_old.id,
             role=SystemRoleEnum.USER,
             username=user_create_data.username,
             email=user_create_data.email,
             password=hashed_password,
         )
+
     else:
-        user = await auth_service.create_user(
+        user_orm = await auth_service.create_user(
             db=db,
             password=hashed_password,
             username=user_create_data.username,
@@ -45,16 +48,17 @@ async def create_user(
             role=SystemRoleEnum.USER,
         )
 
-    key = ''.join(choice(digits) for _ in range(6))
-    await redis.set(name=f'{user.id}/key/{user_agent}', value=key, expire=900)
+    user_dataclass = UserDataclass.from_orm(user_orm)
+    key = auth_utils.email_key_generate()
+    await redis.set(name=f'{user_dataclass.id}/key/{user_agent}', value=str(key), expire=900)
 
-    new_token = auth_utils.get_token(user=UserDataclass.from_orm(user))
-    await redis.set(name=f'{user.id}/agent:{user_agent}', value=new_token, expire=2_592_000)
+    new_token = auth_utils.token_generate(user=user_dataclass)
+    await redis.set(name=f'{user_dataclass.id}/agent:{user_agent}', value=new_token, expire=2_592_000)
 
     return UserCreateDataclass(
-        user=UserDataclass.from_orm(user),
+        user=user_dataclass,
         token=new_token,
-        key=int(key),
+        key=key,
     )
 
 
@@ -62,21 +66,23 @@ async def login_user(
     login_data: UserLoginModel, user_agent: str, db: AsyncSession, redis: AsyncRedis
 ) -> UserLoginDataclass:
     """Login user."""
-    user = await auth_service.get_user_by_email(db=db, email=login_data.email)
-    if not user:
+    user_orm = await auth_service.get_user_by_email(db=db, email=login_data.email)
+    if not user_orm:
         raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
 
-    if user.role == 'anonym' or not user.password or not user.username:
+    if user_orm.role == 'anonym' or not user_orm.password or not user_orm.username:
         raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
 
-    password_correct = auth_utils.verify_password(login_data.password, user.password)
+    password_correct = auth_utils.verify_password(login_data.password, user_orm.password)
     if not password_correct:
         raise Logger.create_response_error(error_key='password_not_correct', is_cookie_remove=False)
 
-    token = auth_utils.get_token(user=UserDataclass.from_orm(user))
-    await redis.set(name=f'{user.id}/agent:{user_agent}', value=token, expire=2_592_000)
+    user_dataclass = UserDataclass.from_orm(user_orm)
 
-    return UserLoginDataclass(token=token, user=UserDataclass.from_orm(user))
+    token = auth_utils.token_generate(user=user_dataclass)
+    await redis.set(name=f'{user_dataclass.id}/agent:{user_agent}', value=token, expire=2_592_000)
+
+    return UserLoginDataclass(token=token, user=user_dataclass)
 
 
 async def logout_user(user_id: int, user_agent: str, redis: AsyncRedis) -> str:
@@ -88,11 +94,22 @@ async def logout_user(user_id: int, user_agent: str, redis: AsyncRedis) -> str:
 
 async def refresh_token(user: UserDataclass, user_agent: str, redis: AsyncRedis) -> str:
     """Refresh JWT token and update cookie."""
-    new_token = auth_utils.get_token(user=user)
+    new_token = auth_utils.token_generate(user=user)
 
     await redis.set(name=f'{user.id}/agent:{user_agent}', value=new_token, expire=2_592_000)
 
     return new_token
+
+
+async def email_new_key(user_id: int, user_agent: str, redis: AsyncRedis) -> int:
+    """Generate new key for email confirmation."""
+    if await redis.get(f'{user_id}/key/{user_agent}'):
+        raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
+
+    new_key = auth_utils.email_key_generate()
+    await redis.set(name=f'{user_id}/key/{user_agent}', value=str(new_key), expire=900)
+
+    return new_key
 
 
 async def confirm_email(
@@ -112,7 +129,7 @@ async def confirm_email(
 
     await redis.delete(f'{user_id}/key/{user_agent}')
 
-    new_token = auth_utils.get_token(user=updated_user_dataclass)
+    new_token = auth_utils.token_generate(user=updated_user_dataclass)
     await redis.set(name=f'{user_id}/agent:{user_agent}', value=new_token, expire=2_592_000)
 
     return UserLoginDataclass(token=new_token, user=updated_user_dataclass)

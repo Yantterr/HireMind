@@ -53,7 +53,7 @@ class Settings(BaseSettings):
         return {
             'key': 'token',
             'httponly': True,
-            'max_age': self.jwt_expire_minutes * 60,
+            'max_age': 2_592_000,
             'secure': False,
             'samesite': 'lax',
         }
