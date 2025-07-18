@@ -9,9 +9,8 @@ import { loginAuth } from 'store/reducers/auth/ActionCreators';
 const FormLogin = () => {
   const dispatch = useAppDispatch();
   const { isFetching } = useAppSelector((state) => state.authReducer);
-  console.log({ dispatch, isFetching, loginAuth });
 
-  const formValid = useRef({ password: { isValid: false, value: '' }, username: { isValid: false, value: '' } });
+  const formValid = useRef({ email: { isValid: false, value: '' }, password: { isValid: false, value: '' } });
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (
@@ -19,7 +18,7 @@ const FormLogin = () => {
         return isValid;
       })
     ) {
-      dispatch(loginAuth(formValid.current.username.value, formValid.current.password.value));
+      dispatch(loginAuth(formValid.current.email.value, formValid.current.password.value));
     } else {
       alert('Form is invalid! Please check the fields...');
     }
@@ -40,10 +39,11 @@ const FormLogin = () => {
       <Typography component="h1" variant="h5" sx={{ textAlign: 'center' }}>
         Вход
       </Typography>
-      <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+      <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
         <ValidatedTextField
-          label="Username"
-          placeholder="Enter username"
+          label="Email"
+          placeholder="Введите email"
+          type="email"
           required
           autoFocus
           validator={(value: string) => {
@@ -51,14 +51,14 @@ const FormLogin = () => {
             return true;
           }}
           onChange={(value, isValid) => {
-            formValid.current.username = { isValid, value };
+            formValid.current.email = { isValid, value };
           }}
           sx={{ mb: 2 }}
           disabled={isFetching}
         />
         <ValidatedTextField
-          label="Password"
-          placeholder="Enter password"
+          label="Пароль"
+          placeholder="Введите пароль"
           required
           type="password"
           validator={(value: string) => {
@@ -69,18 +69,18 @@ const FormLogin = () => {
           disabled={isFetching}
         />
         <Button type="submit" variant="contained" fullWidth sx={{ mt: 1 }} disabled={isFetching}>
-          {isFetching ? 'Loading...' : 'Sign In'}
+          {isFetching ? 'Входим...' : 'Войти'}
         </Button>
       </Box>
       <Grid container justifyContent="space-between" sx={{ mt: 1 }}>
         <Grid>
           <Link component={RouterLink} to="/forgot">
-            Forgot password?
+            Забыл пароль?
           </Link>
         </Grid>
         <Grid>
           <Link component={RouterLink} to="/register">
-            Sign Up
+            Регистрация
           </Link>
         </Grid>
       </Grid>

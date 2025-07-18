@@ -1,11 +1,11 @@
 import { TextField } from '@mui/material';
 import { useState } from 'react';
 
-type IProps = {
+type Props = {
   label: string;
   required?: boolean;
   autoFocus?: boolean;
-  type?: string;
+  type?: React.InputHTMLAttributes<HTMLInputElement>['type'];
   placeholder?: string;
   validator: (value: string) => boolean;
   onChange: (value: string, isValid: boolean) => void;
@@ -23,7 +23,7 @@ const ValidatedTextField = ({
   onChange,
   sx = {},
   disabled = false,
-}: IProps) => {
+}: Props) => {
   const [value, setValue] = useState('');
   const [error, setError] = useState(false);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

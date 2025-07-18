@@ -11,6 +11,7 @@ export const instance = axios.default.create({
     'Content-Type': 'application/json',
     accept: 'application/json',
   },
+  withCredentials: true,
 });
 
 instance.interceptors.response.use(

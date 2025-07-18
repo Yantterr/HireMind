@@ -1,93 +1,110 @@
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { Avatar, Box, Button, Container, Grid, Link, Paper, Typography } from '@mui/material';
-import ValidatedTextField from 'components/ValidatedTextField/ValidatedTextField';
-import { useAppDispatch, useAppSelector } from 'hooks/redux';
-import { useRef } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { loginAuth } from 'store/reducers/auth/ActionCreators';
+import { Box, Button, TextField, Typography } from '@mui/material';
+import { useAppDispatch } from 'hooks/redux';
+import { useSnackbar } from 'notistack';
+import type { ChangeEvent, FormEvent } from 'react';
+import { useState } from 'react';
+import { createUserAuth } from 'store/reducers/auth/ActionCreators';
 
-const FormRegister = () => {
+interface RegisterFormData {
+  login: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+const RegisterForm = () => {
   const dispatch = useAppDispatch();
-  const { isFetching } = useAppSelector((state) => state.authReducer);
-  console.log({ dispatch, isFetching, loginAuth });
+  const { enqueueSnackbar } = useSnackbar();
+  const [form, setForm] = useState<RegisterFormData>({
+    confirmPassword: '',
+    email: '',
+    login: '',
+    password: '',
+  });
 
-  const formValid = useRef({ password: { isValid: false, value: '' }, username: { isValid: false, value: '' } });
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+    setError(null);
+  };
+
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (
-      Object.values(formValid.current).every(({ isValid }) => {
-        return isValid;
-      })
-    ) {
-      dispatch(loginAuth(formValid.current.username.value, formValid.current.password.value));
-    } else {
-      alert('Form is invalid! Please check the fields...');
+    if (form.password !== form.confirmPassword) {
+      setError('Пароли не совпадают');
+      enqueueSnackbar('Пароли не совпадают', { variant: 'warning' });
+      return;
     }
+    dispatch(createUserAuth(form.login, form.email, form.password));
   };
 
   return (
-    <Container maxWidth="xs">
-      <Paper elevation={10} sx={{ marginTop: 8, padding: 2 }}>
-        <Avatar
-          sx={{
-            bgcolor: 'secondary.main',
-            mb: 1,
-            mx: 'auto',
-            textAlign: 'center',
-          }}
-        >
-          <LockOutlinedIcon />
-        </Avatar>
-        <Typography component="h1" variant="h5" sx={{ textAlign: 'center' }}>
-          Sign In
-        </Typography>
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <ValidatedTextField
-            label="Username"
-            placeholder="Enter username"
-            required
-            autoFocus
-            validator={(value: string) => {
-              console.log(value);
-              return true;
-            }}
-            onChange={(value, isValid) => {
-              formValid.current.username = { isValid, value };
-            }}
-            sx={{ mb: 2 }}
-            disabled={isFetching}
-          />
-          <ValidatedTextField
-            label="Password"
-            placeholder="Enter password"
-            required
-            type="password"
-            validator={(value: string) => {
-              console.log(value);
-              return true;
-            }}
-            onChange={(value, isValid) => (formValid.current.password = { isValid, value })}
-            disabled={isFetching}
-          />
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 1 }} disabled={isFetching}>
-            {isFetching ? 'Loading...' : 'Sign In'}
-          </Button>
-        </Box>
-        <Grid container justifyContent="space-between" sx={{ mt: 1 }}>
-          <Grid>
-            <Link component={RouterLink} to="/forgot">
-              Forgot password?
-            </Link>
-          </Grid>
-          <Grid>
-            <Link component={RouterLink} to="/register">
-              Sign Up
-            </Link>
-          </Grid>
-        </Grid>
-      </Paper>
-    </Container>
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        maxWidth: 400,
+        mt: 5,
+        mx: 'auto',
+      }}
+    >
+      <Typography variant="h5" component="h1" align="center">
+        Регистрация
+      </Typography>
+      <TextField
+        name="login"
+        label="Логин"
+        type="login"
+        variant="outlined"
+        value={form.login}
+        onChange={handleChange}
+        required
+        fullWidth
+      />
+      <TextField
+        name="email"
+        label="E-mail"
+        type="email"
+        variant="outlined"
+        value={form.email}
+        onChange={handleChange}
+        required
+        fullWidth
+      />
+      <TextField
+        name="password"
+        label="Пароль"
+        type="password"
+        variant="outlined"
+        value={form.password}
+        onChange={handleChange}
+        required
+        fullWidth
+      />
+      <TextField
+        name="confirmPassword"
+        label="Подтвердите пароль"
+        type="password"
+        variant="outlined"
+        value={form.confirmPassword}
+        onChange={handleChange}
+        required
+        fullWidth
+        error={Boolean(error)}
+        helperText={error}
+      />
+      <Button type="submit" variant="contained" color="primary" fullWidth>
+        Зарегистрироваться
+      </Button>
+    </Box>
   );
 };
 
-export default FormRegister;
+export default RegisterForm;
