@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi_mail import ConnectionConfig
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,7 +14,7 @@ class Settings(BaseSettings):
     redis_port: int
     redis_password: SecretStr
 
-    backend_cors_origins: str
+    backend_cors_origins: Optional[str] = None
 
     jwt_secret_key: SecretStr
     jwt_expire_minutes: int

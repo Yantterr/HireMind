@@ -1,9 +1,11 @@
+from datetime import datetime
 from json import loads
 from typing import Annotated, Awaitable, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import src.services.gpt_services as gpt_service
 import src.utils.gpt_utils as gpt_utils
 from redis.asyncio import Redis
 from src.config import settings
@@ -66,7 +68,16 @@ async def save_expired_chat(message: dict, session_factory: async_sessionmaker[A
 
         async with session_factory() as session:
             await gpt_utils.save_messages(chat=chat, db=session)
-            await session.commit()
+            await gpt_service.chat_edit(
+                db=session,
+                chat_id=chat.id,
+                events=chat.events,
+                count_request_tokens=chat.count_request_tokens,
+                count_response_tokens=chat.count_response_tokens,
+                updated_at=datetime.fromisoformat(chat.updated_at),
+                current_event_chance=chat.current_event_chance,
+            )
+            await session.close()
 
     except Exception as e:
         print(f'Error processing expired key in DB: {e}')

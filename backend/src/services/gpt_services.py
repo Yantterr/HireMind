@@ -1,9 +1,11 @@
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import noload, selectinload
 
+from src.dataclasses.gpt_dataclasses import EventDataclass
 from src.logger import Logger
 from src.models.generally_models import NNRoleEnum
 from src.schemas import ChatSchema, EventSchema, MessageSchema
@@ -58,15 +60,18 @@ async def chat_create(
 async def chat_edit(
     db: AsyncSession,
     chat_id: int,
-    user_id: int,
+    count_request_tokens: Optional[int] = None,
+    count_response_tokens: Optional[int] = None,
+    updated_at: Optional[datetime] = None,
+    current_event_chance: Optional[float] = None,
     is_archived: Optional[bool] = None,
-    events: Optional[list[EventSchema]] = None,
+    events: Optional[list[EventDataclass]] = None,
     title: Optional[str] = None,
 ) -> ChatSchema:
     """Edit GPT chat by ID."""
     request = (
         select(ChatSchema)
-        .where(ChatSchema.id == chat_id, ~ChatSchema.is_archived, ChatSchema.user_id == user_id)
+        .where(ChatSchema.id == chat_id, ~ChatSchema.is_archived)
         .options(selectinload(ChatSchema.messages))
     )
     result = await db.execute(request)
@@ -75,15 +80,30 @@ async def chat_edit(
     if not chat:
         raise Logger.create_response_error(error_key='data_not_found')
 
-    if events:
-        for event in events:
-            chat.events.append(event)
-
+    if current_event_chance is not None:
+        chat.current_event_chance = current_event_chance
+    if updated_at:
+        chat.updated_at = updated_at
+    if count_request_tokens:
+        chat.count_request_tokens = count_request_tokens
+    if count_response_tokens:
+        chat.count_response_tokens = count_response_tokens
     if title:
         chat.title = title
-
     if is_archived is not None:
         chat.is_archived = is_archived
+
+    if events:
+        event_ids = [event.id for event in events]
+        current_event_ids = {e.id for e in chat.events}
+        new_event_ids = set(event_ids) - current_event_ids
+
+        if new_event_ids:
+            new_events_request = select(EventSchema).where(EventSchema.id.in_(new_event_ids))
+            new_events_result = await db.execute(new_events_request)
+            new_events = new_events_result.scalars().all()
+
+            chat.events.extend(new_events)
 
     await db.commit()
     await db.refresh(chat)
@@ -143,10 +163,10 @@ async def event_get_random(db: AsyncSession, count: int) -> list[EventSchema]:
     return list(events)
 
 
-async def event_get_one(db: AsyncSession, executes: list[int]) -> EventSchema:
+async def event_get_one(db: AsyncSession, exceptions: list[int]) -> EventSchema:
     """Get some amount random events."""
     random_func = func.random()
-    request = select(EventSchema).where(EventSchema.id.in_(executes)).limit(1).order_by(random_func)
+    request = select(EventSchema).where(EventSchema.id.notin_(exceptions)).limit(1).order_by(random_func)
     result = await db.execute(request)
     event = result.scalars().one()
 

@@ -7,8 +7,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from src.api.auth_api import auth_router
-
-# from src.api.gpt_api import gpt_router
+from src.api.gpt_api import gpt_router
 from src.config import settings
 from src.middlewares.auth_middlewares import AnonymousUserTokenMiddleware, ValidateTokenAndAuthMiddleware
 from src.redis import close_redis, init_redis, listen_redis_chat_expired
@@ -45,7 +44,7 @@ app.add_middleware(ValidateTokenAndAuthMiddleware)
 app.add_middleware(AnonymousUserTokenMiddleware)
 
 app.include_router(auth_router)
-# app.include_router(gpt_router)
+app.include_router(gpt_router)
 
 
 if __name__ == '__main__':

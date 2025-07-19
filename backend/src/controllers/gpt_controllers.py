@@ -81,7 +81,7 @@ async def chat_create(
 
 async def chat_delete(chat_id: int, user_id: int, db: AsyncSession, redis: AsyncRedis) -> ChatDataclass:
     """Delete GPT chat by ID (soft delete)."""
-    chat = await gpt_service.chat_edit(db=db, user_id=user_id, is_archived=True, chat_id=chat_id)
+    chat = await gpt_service.chat_edit(db=db, is_archived=True, chat_id=chat_id)
 
     redis_chat = await redis.get(f'{user_id}/chat:{chat_id}')
     if redis_chat:
@@ -112,12 +112,24 @@ async def message_send(
         )
     )
 
-    random_event = await gpt_utils.event_get_one(db=db, chat=chat)
-
+    random_event, new_percent = await gpt_utils.event_get_one(db=db, chat=chat)
     if random_event:
         chat.events.append(EventDataclass.from_orm(random_event))
+        chat.messages.append(
+            MessageDataclass(
+                id=None,
+                chat_id=chat.id,
+                role=NNRoleEnum.SYSTEM,
+                content='Событие добавлено: ' + random_event.content,
+                created_at=datetime.now().isoformat(),
+            )
+        )
+
+    chat.current_event_chance = new_percent
 
     nn_response = await gpt_utils.NNRequest(context=chat.messages)
+    chat.count_request_tokens += nn_response.count_request_tokens
+    chat.count_response_tokens += nn_response.count_response_tokens
     chat.messages.append(
         MessageDataclass(
             id=None,

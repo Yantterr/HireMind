@@ -1,25 +1,24 @@
 from dataclasses import asdict
 from json import dumps, loads
-from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Request
 
 import src.services.gpt_services as gpt_service
 from src.database import SessionDep
-from src.dataclasses.auth_dataclasses import AuthDataclass
 from src.dataclasses.gpt_dataclasses import ChatDataclass
 from src.logger import Logger
 from src.redis import RedisDep
 
 
 async def get_chat(
+    request: Request,
     chat_id: int,
-    auth_data: Annotated[AuthDataclass, Depends(auth_dependencies.get_current_user)],
     db: SessionDep,
     redis: RedisDep,
 ) -> ChatDataclass:
     """Get GPT chat by ID."""
-    user_id = auth_data.user.id
+    user = request.state.user
+    user_id = user.id
     redis_chat = await redis.get(value=f'{user_id}/chat:{chat_id}')
     if redis_chat:
         chat = loads(redis_chat)

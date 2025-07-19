@@ -9,8 +9,8 @@ from src.config import settings
 from src.database import SessionDep
 from src.dataclasses.auth_dataclasses import UserDataclass
 from src.logger import Logger
-from src.models.auth import UserConfirmEmailModel, UserCreateModel, UserLoginModel, UserModel
-from src.models.generally_models import ResponseModel
+from src.models.auth_models import UserConfirmEmailModel, UserCreateModel, UserLoginModel, UserModel
+from src.models.generally_models import ResponseModel, SystemRoleEnum
 from src.redis import RedisDep
 
 auth_router = APIRouter(

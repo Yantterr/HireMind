@@ -13,6 +13,7 @@ class UserModel(BaseUserModel):
     """User model with ID and role."""
 
     id: int
+    email: Optional[str] = None
     role: SystemRoleEnum
     is_activated: bool
 

@@ -6,7 +6,7 @@ import src.services.auth_services as auth_service
 import src.utils.auth_utils as auth_utils
 from src.dataclasses.auth_dataclasses import UserCreateDataclass, UserDataclass, UserLoginDataclass
 from src.logger import Logger
-from src.models.auth import UserCreateModel, UserLoginModel
+from src.models.auth_models import UserCreateModel, UserLoginModel
 from src.models.generally_models import SystemRoleEnum
 from src.redis import AsyncRedis
 

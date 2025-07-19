@@ -11,6 +11,7 @@ class UserDataclass(BaseDataclass):
 
     id: int
     username: str
+    email: str
     role: SystemRoleEnum
     is_activated: bool
 

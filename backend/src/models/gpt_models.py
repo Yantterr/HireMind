@@ -31,6 +31,19 @@ class ChatModel(Base):
     events: list[EventModel]
     count_request_tokens: int
     count_response_tokens: int
+    current_event_chance: float
+    created_at: datetime
+    updated_at: datetime
+
+
+class ChatsModel(Base):
+    """Model for retrieving list of chats."""
+
+    id: int
+    title: str
+    is_archived: bool
+    count_request_tokens: int
+    count_response_tokens: int
     created_at: datetime
     updated_at: datetime
 
