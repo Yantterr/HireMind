@@ -14,22 +14,24 @@ export const getCurrentUser = () => async (dispatch: AppDispatch, getStore: () =
     dispatch(authSlice.actions.authFetching());
     const result = await authAPI.me();
     dispatch(
-      authSlice.actions.authFetchingSuccess({
+      authSlice.actions.authFetchingUserSuccess({
+        email: result.data.email,
         id: result.data.id.toString(),
-        name: result.data.username || '',
+        isActivated: result.data.is_activated,
+        login: result.data.username,
         role: result.data.role,
       }),
     );
   } catch (e) {
     console.log(e.response?.data?.detail);
     console.log(e.message);
-    dispatch(authSlice.actions.authFetchingSuccess(anonym));
+    dispatch(authSlice.actions.authFetchingUserSuccess(anonym));
   }
   dispatch(authSlice.actions.initUserSuccess());
 };
 
 export const loginAuth =
-  (login: string, password: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
+  (email: string, password: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
     const { isFetching } = getStore().authReducer;
     if (isFetching) {
       toast.info('Ожидайте, ждем ответа от сервера ...', {
@@ -45,12 +47,13 @@ export const loginAuth =
     }
     try {
       dispatch(authSlice.actions.authFetching());
-      await authAPI.login(login, password);
-      const result = await authAPI.me();
+      const result = await authAPI.login(email, password);
       dispatch(
-        authSlice.actions.authFetchingSuccess({
+        authSlice.actions.authFetchingUserSuccess({
+          email: result.data.email,
           id: result.data.id.toString(),
-          name: result.data.username,
+          isActivated: result.data.is_activated,
+          login: result.data.username,
           role: result.data.role,
         }),
       );
@@ -71,19 +74,6 @@ export const loginAuth =
   };
 
 export const logoutAuth = () => async (dispatch: AppDispatch, getStore: () => RootState) => {
-  const refresh = localStorage.getItem('refresh');
-  if (!refresh) {
-    toast.info('Вы уже вышли из приложения.', {
-      autoClose: 5000,
-      closeOnClick: true,
-      draggable: true,
-      hideProgressBar: false,
-      pauseOnHover: true,
-      position: 'top-right',
-      theme: 'colored',
-    });
-    return;
-  }
   const { isFetching } = getStore().authReducer;
   if (isFetching) {
     toast.info('Ожидайте, ждем ответа от сервера ...', {
@@ -99,13 +89,114 @@ export const logoutAuth = () => async (dispatch: AppDispatch, getStore: () => Ro
   }
   try {
     dispatch(authSlice.actions.authFetching());
-    await authAPI.logout();
-  } catch (error) {
-    console.error(error);
+    const result = await authAPI.logout();
+    console.log(result);
+    dispatch(authSlice.actions.authFetchingUserSuccess(anonym));
+  } catch (e) {
+    console.error(e);
+    dispatch(authSlice.actions.authFetchingError(e.message));
   }
-  dispatch(authSlice.actions.authFetchingSuccess(anonym));
-  localStorage.removeItem('refresh');
-  localStorage.removeItem('access');
+};
+
+export const createUserAuth =
+  (login: string, email: string, password: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
+    const { isFetching } = getStore().authReducer;
+    if (isFetching) {
+      toast.info('Ожидайте, ждем ответа от сервера ...', {
+        autoClose: 5000,
+        closeOnClick: true,
+        draggable: true,
+        hideProgressBar: false,
+        pauseOnHover: true,
+        position: 'top-right',
+        theme: 'colored',
+      });
+      return;
+    }
+    try {
+      dispatch(authSlice.actions.authFetching());
+      const result = await authAPI.createUser(email, login, password);
+      dispatch(
+        authSlice.actions.authFetchingUserSuccess({
+          email: result.data.email,
+          id: result.data.id.toString(),
+          isActivated: result.data.is_activated,
+          login: result.data.username,
+          role: result.data.role,
+        }),
+      );
+    } catch (e) {
+      console.log(e.response?.data?.detail);
+      console.log(e.message);
+      toast.warn('Регистрация завершилась с ошибкой', {
+        autoClose: 5000,
+        closeOnClick: true,
+        draggable: true,
+        hideProgressBar: false,
+        pauseOnHover: true,
+        position: 'top-right',
+        theme: 'colored',
+      });
+      dispatch(authSlice.actions.authFetchingError(e.message));
+    }
+  };
+
+export const confirmEmail = (pinCode: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
+  const { isFetching } = getStore().authReducer;
+  if (isFetching) {
+    toast.info('Ожидайте, ждем ответа от сервера ...', {
+      autoClose: 5000,
+      closeOnClick: true,
+      draggable: true,
+      hideProgressBar: false,
+      pauseOnHover: true,
+      position: 'top-right',
+      theme: 'colored',
+    });
+    return;
+  }
+  try {
+    dispatch(authSlice.actions.authFetching());
+    const result = await authAPI.confirmEmail(pinCode);
+    dispatch(
+      authSlice.actions.authFetchingUserSuccess({
+        email: result.data.email,
+        id: result.data.id.toString(),
+        isActivated: result.data.is_activated,
+        login: result.data.username,
+        role: result.data.role,
+      }),
+    );
+  } catch (e) {
+    console.log(e.response?.data?.detail);
+    console.log(e.message);
+    dispatch(authSlice.actions.authFetchingError(e.message));
+  }
+};
+
+export const requestPinCode = () => async (dispatch: AppDispatch, getStore: () => RootState) => {
+  const { isFetching } = getStore().authReducer;
+  if (isFetching) {
+    toast.info('Ожидайте, ждем ответа от сервера ...', {
+      autoClose: 5000,
+      closeOnClick: true,
+      draggable: true,
+      hideProgressBar: false,
+      pauseOnHover: true,
+      position: 'top-right',
+      theme: 'colored',
+    });
+    return;
+  }
+  try {
+    dispatch(authSlice.actions.authFetching());
+    await authAPI.requestPinCode();
+    dispatch(authSlice.actions.authFetchingSuccess());
+  } catch (e) {
+    console.log(e.response?.data?.detail);
+    console.log(e.message);
+    dispatch(authSlice.actions.authFetchingError(e.message));
+  }
 };
 
 export default null;

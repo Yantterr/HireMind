@@ -2,10 +2,13 @@ import { Box, Container } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import MyAppBar from 'components/MyAppBar/MyAppBar';
 import { useAppSelector } from 'hooks/redux';
+import ConfirmEmailPage from 'pages/ConfirmEmailPage/ConfirmEmailPage';
 import ExamplePage from 'pages/ExamplePage/ExamplePage';
 import Home from 'pages/Home/Home';
 import Login from 'pages/Login/Login';
+import LogoutPage from 'pages/LogoutPage/LogoutPage';
 import Page404 from 'pages/Page404/Page404';
+import ProfilePage from 'pages/ProfilePage/ProfilePage';
 import Register from 'pages/Register/Register';
 import { lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
@@ -49,6 +52,10 @@ export default function App() {
               <Route path="register" element={<Register />} />
             </Route>
             <Route element={<RequireAuth />}>
+              <Route path="profile/" element={<ProfilePage />} />
+              <Route path="logout/" element={<LogoutPage />} />
+              <Route path="confirm-email/" element={<ConfirmEmailPage />} />
+
               <Route path="example_route_1/" element={<ExamplePage />} />
               <Route path="example_route_2/*" element={withSuspense(ExampleSuspensePage)} />
             </Route>

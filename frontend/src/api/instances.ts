@@ -1,16 +1,16 @@
-import * as axios from 'axios';
+import axios from 'axios';
 import { anonym } from 'models/IAuthUser';
 import { authSlice } from 'store/reducers/auth/Slice';
 
 import store from '../store/store';
 import baseURL from './config';
 
-export const instance = axios.default.create({
+export const instance = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
-    accept: 'application/json',
   },
+  withCredentials: true,
 });
 
 instance.interceptors.response.use(
@@ -22,7 +22,7 @@ instance.interceptors.response.use(
     if (error?.response?.status === undefined || error?.response?.status === 0) {
       store.dispatch(authSlice.actions.isBadConnectionAuth());
     } else if (error.response && error.response.status === 401) {
-      store.dispatch(authSlice.actions.authFetchingSuccess(anonym));
+      store.dispatch(authSlice.actions.authFetchingUserSuccess(anonym));
     }
 
     throw error;
