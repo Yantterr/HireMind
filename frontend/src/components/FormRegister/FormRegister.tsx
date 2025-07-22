@@ -5,6 +5,38 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useState } from 'react';
 import { createUserAuth } from 'store/reducers/auth/ActionCreators';
 
+const passwordConfig = Object.freeze({
+  minLength: 12,
+  oneDigit: true,
+  oneLowercaseChar: true,
+  oneSpecialChar: true,
+  oneUppercaseChar: true,
+});
+
+function verifyPasswordStrength(password: string): string {
+  if (passwordConfig.minLength && password.length < passwordConfig.minLength) {
+    return `Ваш пароль должен содержать минимум ${passwordConfig.minLength} символов.`;
+  }
+
+  if (passwordConfig.oneLowercaseChar && password.search(/[a-z]/i) < 0) {
+    return 'Ваш пароль должен содержать как минимум один строчный символ (a-z).';
+  }
+
+  if (passwordConfig.oneUppercaseChar && password.search(/[A-Z]/) < 0) {
+    return 'Ваш пароль должен содержать как минимум одну заглавную букву (A–Z).';
+  }
+
+  if (passwordConfig.oneDigit && password.search(/\d/) < 0) {
+    return 'Ваш пароль должен содержать как минимум одну цифру.';
+  }
+
+  if (passwordConfig.oneSpecialChar && password.search(/\W/) < 0) {
+    return 'Ваш пароль должен содержать как минимум один специальный символ.';
+  }
+
+  return '';
+}
+
 interface RegisterFormData {
   login: string;
   email: string;
@@ -22,20 +54,28 @@ const RegisterForm = () => {
     password: '',
   });
 
-  const [error, setError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value,
     });
-    setError(null);
+    if (e.target.name == 'password') {
+      const result = verifyPasswordStrength(e.target.value);
+      if (result) {
+        setPasswordError(result);
+        return;
+      }
+      setPasswordError(null);
+    }
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
-      setError('Пароли не совпадают');
+      setConfirmPasswordError('Пароли не совпадают');
       enqueueSnackbar('Пароли не совпадают', { variant: 'warning' });
       return;
     }
@@ -87,6 +127,8 @@ const RegisterForm = () => {
         onChange={handleChange}
         required
         fullWidth
+        error={Boolean(passwordError)}
+        helperText={passwordError}
       />
       <TextField
         name="confirmPassword"
@@ -97,8 +139,8 @@ const RegisterForm = () => {
         onChange={handleChange}
         required
         fullWidth
-        error={Boolean(error)}
-        helperText={error}
+        error={Boolean(confirmPasswordError)}
+        helperText={confirmPasswordError}
       />
       <Button type="submit" variant="contained" color="primary" fullWidth>
         Зарегистрироваться

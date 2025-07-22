@@ -2,7 +2,7 @@ import { Box, Button, TextField } from '@mui/material';
 import { useAppDispatch } from 'hooks/redux';
 import { useSnackbar } from 'notistack';
 import { useState } from 'react';
-import { confirmEmail } from 'store/reducers/auth/ActionCreators';
+import { confirmEmail, requestPinCode } from 'store/reducers/auth/ActionCreators';
 
 function FormConfirmEmail() {
   const dispatch = useAppDispatch();
@@ -18,7 +18,7 @@ function FormConfirmEmail() {
   };
 
   const handleRequestPin = () => {
-    alert('Запросили пинкод заново (не завезли)');
+    dispatch(requestPinCode());
   };
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -5,5 +5,5 @@ export interface UserResponse {
   id: number;
   role: Role;
   is_activated: boolean;
-  email?: string;
+  email: string;
 }

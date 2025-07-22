@@ -23,6 +23,7 @@ class AnonymousUserTokenMiddleware(BaseHTTPMiddleware):
         if (
             (request.url.path == '/auth/' and request.method == 'POST')
             or request.url.path == '/auth/login/'
+            or request.url.path == '/auth/login'
             or request.cookies.get('token')
         ):
             return await call_next(request)
@@ -94,7 +95,7 @@ class ValidateTokenAndAuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={'detail': 'Access denied.'},
-                headers={'set-cookie': 'token=; Max-Age=0; Path=/; SameSite=lax'},
+                headers={'set-cookie': 'token=; Max-Age=0; Path=/; secure=true; SameSite=none'},
             )
 
         response = await call_next(request)

@@ -21,7 +21,7 @@ export const authAPI = {
   },
 
   async login(email: string, password: string): Promise<AxiosResponse<UserResponse>> {
-    return instance.post<UserResponse>('/auth/login/', {
+    return instance.post<UserResponse>('/auth/login', {
       email,
       password,
     });
@@ -33,6 +33,10 @@ export const authAPI = {
 
   async me(): Promise<AxiosResponse<UserResponse>> {
     return instance.get<UserResponse>('/auth/me');
+  },
+
+  async requestPinCode(): Promise<AxiosResponse<void>> {
+    return instance.get<void>('/auth/key');
   },
 };
 

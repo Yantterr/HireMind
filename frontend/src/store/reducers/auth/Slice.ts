@@ -29,7 +29,11 @@ export const authSlice = createSlice({
       state.error = action.payload;
       state.user = anonym;
     },
-    authFetchingSuccess(state, action: PayloadAction<User>) {
+    authFetchingSuccess(state) {
+      state.isFetching = false;
+      state.error = '';
+    },
+    authFetchingUserSuccess(state, action: PayloadAction<User>) {
       state.isFetching = false;
       state.error = '';
       state.user = action.payload;

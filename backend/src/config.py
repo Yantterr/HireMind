@@ -56,8 +56,8 @@ class Settings(BaseSettings):
             'key': 'token',
             'httponly': True,
             'max_age': 2_592_000,
-            'secure': False,
-            'samesite': 'lax',
+            'secure': True,
+            'samesite': 'none',
         }
 
     model_config = SettingsConfigDict(env_file='.env')

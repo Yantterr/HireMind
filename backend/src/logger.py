@@ -25,6 +25,6 @@ class Logger:
 
         headers = None
         if is_cookie_remove:
-            headers = {'set-cookie': 'token=; Max-Age=0; Path=/; SameSite=lax'}
+            headers = {'set-cookie': 'token=; Max-Age=0; Path=/; secure=true; SameSite=none'}
 
         return HTTPException(status_code=status, detail=detail, headers=headers)
