@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi_mail import ConnectionConfig
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,7 +14,7 @@ class Settings(BaseSettings):
     redis_port: int
     redis_password: SecretStr
 
-    backend_cors_origins: str
+    backend_cors_origins: Optional[str] = None
 
     jwt_secret_key: SecretStr
     jwt_expire_minutes: int
@@ -47,18 +49,18 @@ class Settings(BaseSettings):
         """Construct the full database URL for SQLAlchemy connection with aiosqlite driver."""
         return f'sqlite+aiosqlite:///./{self.sqlite_file}'
 
-    model_config = SettingsConfigDict(env_file='.env')
-
     @property
     def auth_token_config(self) -> dict:
         """Construct a cookie token configuration for FastAPI."""
         return {
             'key': 'token',
             'httponly': True,
-            'max_age': self.jwt_expire_minutes * 60,
+            'max_age': 2_592_000,
             'secure': False,
             'samesite': 'lax',
         }
+
+    model_config = SettingsConfigDict(env_file='.env')
 
 
 NNConfig = {

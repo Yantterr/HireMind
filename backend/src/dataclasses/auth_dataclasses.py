@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from src.dataclasses.generally_dataclasses import BaseDataclass
 from src.models.generally_models import SystemRoleEnum
@@ -10,6 +11,7 @@ class UserDataclass(BaseDataclass):
 
     id: int
     username: str
+    email: str
     role: SystemRoleEnum
     is_activated: bool
 
@@ -38,3 +40,12 @@ class AuthDataclass:
     user: UserDataclass
     user_agent: str
     token: str
+
+
+@dataclass
+class AuthInfoDataclass:
+    """Auth info dataclass."""
+
+    token: str
+    user_agent: str
+    error: Optional[str]

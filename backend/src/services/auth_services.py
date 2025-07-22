@@ -27,8 +27,17 @@ async def get_user(db: AsyncSession, user_id: int) -> UserSchema | None:
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> UserSchema | None:
-    """Service for get user by username."""
+    """Service for get user by email."""
     request = select(UserSchema).where(UserSchema.email == email)
+    result = await db.execute(request)
+    user = result.scalars().first()
+
+    return user
+
+
+async def get_user_by_username(db: AsyncSession, username: str) -> UserSchema | None:
+    """Service for get user by username."""
+    request = select(UserSchema).where(UserSchema.username == username)
     result = await db.execute(request)
     user = result.scalars().first()
 
