@@ -9,7 +9,7 @@ class Base(BaseModel):
     model_config = {'from_attributes': True, 'use_enum_values': True, 'extra': 'forbid'}
 
 
-class MessageModel(Base):
+class ResponseModel(Base):
     """Response model containing a message string."""
 
     message: str
