@@ -5,8 +5,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.services.gpt_services as gpt_service
-from src.dataclasses.gpt_dataclasses import ChatDataclass, MessageDataclass, NNResponseDataclass
-from src.models.generally_models import NNRoleEnum
+from src.dataclasses.gpt_dataclasses import ChatDataclass, MessageDataclass
 from src.schemas import EventSchema, MessageSchema
 
 
@@ -73,8 +72,10 @@ async def event_get_one(db: AsyncSession, chat: ChatDataclass) -> tuple[Optional
         return None, new_percent
 
 
-async def NNRequest(context: list[MessageDataclass]) -> NNResponseDataclass:
-    """Make a request to NN."""
-    return NNResponseDataclass(
-        role=NNRoleEnum.ASSISTANT, content='Hello!', count_request_tokens=1, count_response_tokens=1
-    )
+def ollama_generate_context(messages: list[MessageDataclass]) -> list:
+    """Generate context for Ollama."""
+    context = []
+    for message in messages:
+        context.append({'role': message.role, 'content': message.content})
+
+    return context

@@ -1,5 +1,7 @@
 from fastapi import HTTPException
 
+from src.config import settings
+
 
 class Logger:
     """Logger errors."""
@@ -25,6 +27,13 @@ class Logger:
 
         headers = None
         if is_cookie_remove:
-            headers = {'set-cookie': 'token=; Max-Age=0; Path=/; secure=true; SameSite=none'}
+            samesite = 'None' if settings.develop_mode else 'Lax'
+            secure = '' if settings.develop_mode else 'Secure'
+
+            cookie = f'token=; Max-Age=0; Path=/; SameSite={samesite}'
+            if secure:
+                cookie += f'; {secure}'
+
+            headers = {'set-cookie': cookie}
 
         return HTTPException(status_code=status, detail=detail, headers=headers)

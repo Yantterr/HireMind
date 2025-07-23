@@ -9,8 +9,8 @@ from starlette.middleware.cors import CORSMiddleware
 from src.api.auth_api import auth_router
 from src.api.gpt_api import gpt_router
 from src.config import settings
+from src.engines.redis_engine import close_redis, init_redis, listen_redis_chat_expired
 from src.middlewares.auth_middlewares import AnonymousUserTokenMiddleware, ValidateTokenAndAuthMiddleware
-from src.redis import close_redis, init_redis, listen_redis_chat_expired
 
 
 @asynccontextmanager

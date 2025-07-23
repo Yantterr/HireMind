@@ -1,5 +1,6 @@
 from dataclasses import dataclass, fields
 from datetime import datetime
+from enum import Enum
 from typing import Any, Union, get_args, get_origin
 
 
@@ -46,6 +47,9 @@ class BaseDataclass:
                 inner_type = type_args[0]
                 return [cls._convert_value(item, inner_type) for item in value]
             return value
+
+        if isinstance(value, Enum):
+            return value.value
 
         if isinstance(target_type, type) and issubclass(target_type, BaseDataclass):
             if isinstance(value, dict):

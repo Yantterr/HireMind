@@ -4,10 +4,10 @@ from json import dumps, loads
 from fastapi import Request
 
 import src.services.gpt_services as gpt_service
-from src.database import SessionDep
 from src.dataclasses.gpt_dataclasses import ChatDataclass
+from src.engines.database_engine import SessionDep
+from src.engines.redis_engine import RedisDep
 from src.logger import Logger
-from src.redis import RedisDep
 
 
 async def get_chat(

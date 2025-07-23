@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import src.services.auth_services as auth_service
 import src.utils.auth_utils as auth_utils
 from src.dataclasses.auth_dataclasses import UserCreateDataclass, UserDataclass, UserLoginDataclass
+from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
 from src.models.auth_models import UserCreateModel, UserLoginModel
 from src.models.generally_models import SystemRoleEnum
-from src.redis import AsyncRedis
 
 
 async def create_user(
@@ -45,7 +45,7 @@ async def create_user(
             password=hashed_password,
             username=user_create_data.username,
             email=user_create_data.email,
-            role=SystemRoleEnum.USER,
+            role=SystemRoleEnum.ADMIN,
         )
 
     user_dataclass = UserDataclass.from_orm(user_orm)

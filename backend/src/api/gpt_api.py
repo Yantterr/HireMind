@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, Request
 
 import src.controllers.gpt_controllers as gpt_controllers
 import src.dependencies.gpt_dependencies as gpt_dependencies
-from src.database import SessionDep
 from src.dataclasses.gpt_dataclasses import ChatDataclass
+from src.engines.database_engine import SessionDep
+from src.engines.redis_engine import RedisDep
 from src.logger import Logger
 from src.models.gpt_models import (
     ChatCreateModel,
@@ -15,7 +16,6 @@ from src.models.gpt_models import (
     EventModel,
     MessageCreateModel,
 )
-from src.redis import RedisDep
 from src.schemas import ChatSchema, EventSchema
 
 gpt_router = APIRouter(

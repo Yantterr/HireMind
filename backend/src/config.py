@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     """Application configuration settings loaded from environment variables or a .env file."""
 
     sqlite_file: str = 'database.db'
+    develop_mode: bool
 
     redis_host: str
     redis_port: int
@@ -21,6 +22,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str
 
     gpt_api_key: SecretStr
+
+    ollama_host: str
+    ollama_port: int
+    ollama_model: str
 
     host: str
     port: int
@@ -45,6 +50,11 @@ class Settings(BaseSettings):
         )
 
     @property
+    def ollama_url(self) -> str:
+        """Construct the full Ollama URL."""
+        return f'http://{self.ollama_host}:{self.ollama_port}/api/chat'
+
+    @property
     def database_url(self) -> str:
         """Construct the full database URL for SQLAlchemy connection with aiosqlite driver."""
         return f'sqlite+aiosqlite:///./{self.sqlite_file}'
@@ -56,8 +66,8 @@ class Settings(BaseSettings):
             'key': 'token',
             'httponly': True,
             'max_age': 2_592_000,
-            'secure': True,
-            'samesite': 'none',
+            'secure': not self.develop_mode,
+            'samesite': 'none' if self.develop_mode else 'lax',
         }
 
     model_config = SettingsConfigDict(env_file='.env')
