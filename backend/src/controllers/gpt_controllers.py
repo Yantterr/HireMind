@@ -4,14 +4,15 @@ from json import dumps, loads
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import src.engines.ollama_engine as ollama_engine
 import src.services.gpt_services as gpt_service
 import src.utils.gpt_utils as gpt_utils
 from src.config import NNConfig
 from src.dataclasses.gpt_dataclasses import ChatDataclass, EventDataclass, MessageDataclass
+from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
 from src.models.generally_models import NNRoleEnum, SystemRoleEnum
 from src.models.gpt_models import ChatCreateModel, EventCreateModel, MessageCreateModel
-from src.redis import AsyncRedis
 from src.schemas import ChatSchema, EventSchema
 
 
@@ -38,6 +39,16 @@ async def chat_create(
 
     system_prompt_content = (
         f'Вы собеседуете кандидата на позицию {NNConfig["language"][create_chat_data.language]} разработчика. '
+        f"""Имитируй живого человека, который помогает подготовиться к собеседованию.
+        Начни с короткого дружелюбного приветствия (1 предложение).
+        Задавай строго по одному вопросу за раз, даже если ответ пользователя будет односложным ("да"/"нет").
+        Всегда дожидайся ответа перед следующим вопросом.
+        Держи реплики краткими (максимум 2 предложения).
+        Активно слушай: используй уточнения и естественные реакции на ответы."""
+        f"""Имитируйте поведение обычного человека, вопросы задавай по очереди и начинай с
+        небольшого дружелюбного диалога для подготовки к собеседованию. Твои реплики должны быть не слишком длинные и
+        не задавай много вопросов подряд. Задавай новые вопросы по мере ответа на старые,
+        даже если ответ будет односложным типо: да или нет, то все равно жди ответа и не задавай новый вопрос."""
         f'{NNConfig["difficulty"][create_chat_data.difficulty]} '
         f'{NNConfig["politeness"][create_chat_data.politeness]} '
         f'{NNConfig["friendliness"][create_chat_data.friendliness]} '
@@ -62,7 +73,8 @@ async def chat_create(
     chat_dataclass = ChatDataclass.from_orm(chat)
     chat_dataclass.messages.append(MessageDataclass.from_orm(message))
 
-    nn_response = await gpt_utils.NNRequest(context=chat_dataclass.messages)
+    nn_response = await ollama_engine.ollama_request(messages=chat_dataclass.messages)
+
     chat_dataclass.messages.append(
         MessageDataclass(
             id=None,
@@ -127,7 +139,7 @@ async def message_send(
 
     chat.current_event_chance = new_percent
 
-    nn_response = await gpt_utils.NNRequest(context=chat.messages)
+    nn_response = await ollama_engine.ollama_request(messages=chat.messages)
     chat.count_request_tokens += nn_response.count_request_tokens
     chat.count_response_tokens += nn_response.count_response_tokens
     chat.messages.append(

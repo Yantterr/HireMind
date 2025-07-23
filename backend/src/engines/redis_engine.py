@@ -3,14 +3,14 @@ from json import loads
 from typing import Annotated, Awaitable, Optional
 
 from fastapi import Depends
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import src.services.gpt_services as gpt_service
 import src.utils.gpt_utils as gpt_utils
-from redis.asyncio import Redis
 from src.config import settings
-from src.database import session_factory
 from src.dataclasses.gpt_dataclasses import ChatDataclass
+from src.engines.database_engine import session_factory
 
 redis_client: Redis | None = None
 

@@ -10,7 +10,7 @@ from jwt import ExpiredSignatureError, decode, encode
 
 from src.config import settings
 from src.dataclasses.auth_dataclasses import AuthInfoDataclass, UserDataclass
-from src.redis import AsyncRedis
+from src.engines.redis_engine import AsyncRedis
 
 
 def token_generate(user: UserDataclass) -> str:

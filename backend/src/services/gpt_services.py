@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import noload, selectinload
 
@@ -15,7 +15,7 @@ async def chat_get_all(db: AsyncSession, user_id: int) -> list[ChatSchema]:
     """Get all non-archived chats from database."""
     request = (
         select(ChatSchema)
-        .where(ChatSchema.user_id == user_id, ~ChatSchema.is_archived)
+        .where(and_(ChatSchema.user_id == user_id, ~ChatSchema.is_archived))
         .options(noload(ChatSchema.messages))
     )
     result = await db.execute(request)
@@ -163,11 +163,11 @@ async def event_get_random(db: AsyncSession, count: int) -> list[EventSchema]:
     return list(events)
 
 
-async def event_get_one(db: AsyncSession, exceptions: list[int]) -> EventSchema:
+async def event_get_one(db: AsyncSession, exceptions: list[int]) -> Optional[EventSchema]:
     """Get some amount random events."""
     random_func = func.random()
     request = select(EventSchema).where(EventSchema.id.notin_(exceptions)).limit(1).order_by(random_func)
     result = await db.execute(request)
-    event = result.scalars().one()
+    event = result.scalars().first()
 
     return event
