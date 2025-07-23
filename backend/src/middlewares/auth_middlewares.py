@@ -10,6 +10,8 @@ from src.engines.redis_engine import get_redis
 from src.models.generally_models import SystemRoleEnum
 from src.schemas import UserSchema
 
+AUTH_EXCLUDED_PATHS = {'/auth/login', '/auth/login/', '/auth/'}
+
 
 class AnonymousUserTokenMiddleware(BaseHTTPMiddleware):
     """Middleware for check token in cookie."""
@@ -21,9 +23,8 @@ class AnonymousUserTokenMiddleware(BaseHTTPMiddleware):
     ):
         """Check token in cookie."""
         if (
-            (request.url.path == '/auth/' and request.method == 'POST')
-            or request.url.path == '/auth/login/'
-            or request.url.path == '/auth/login'
+            request.url.path in AUTH_EXCLUDED_PATHS
+            and (request.url.path != '/auth/' or request.method == 'POST')
             or request.cookies.get('token')
         ):
             return await call_next(request)
@@ -37,7 +38,6 @@ class AnonymousUserTokenMiddleware(BaseHTTPMiddleware):
                 await session.refresh(user)
 
         token = auth_utils.token_generate(UserDataclass.from_orm(user))
-
         redis = get_redis()
         user_agent = request.headers.get('user-agent')
         await redis.set(name=f'{user.id}/agent:{user_agent}', value=token, expire=2_592_000)
@@ -45,7 +45,6 @@ class AnonymousUserTokenMiddleware(BaseHTTPMiddleware):
         request.state.token = token
         request.state.user = user
         response = await call_next(request)
-
         response.set_cookie(value=token, **settings.auth_token_config)
 
         return response
@@ -60,11 +59,7 @@ class ValidateTokenAndAuthMiddleware(BaseHTTPMiddleware):
         call_next,
     ):
         """Validate token."""
-        if (
-            (request.url.path == '/auth/' and request.method == 'POST')
-            or request.url.path == '/auth/login'
-            or request.url.path == '/auth/login/'
-        ):
+        if request.url.path in AUTH_EXCLUDED_PATHS and (request.url.path != '/auth/' or request.method == 'POST'):
             return await call_next(request)
 
         auth_info = auth_utils.get_validated_auth_info(request)
@@ -73,7 +68,7 @@ class ValidateTokenAndAuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED, content={'detail': 'User not authenticated.'}
             )
-        elif auth_info.error == 'undefined_error':
+        if auth_info.error == 'undefined_error':
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={'detail': 'Undefined error.'}
             )
@@ -87,15 +82,22 @@ class ValidateTokenAndAuthMiddleware(BaseHTTPMiddleware):
 
         new_token = auth_utils.token_generate(user=user)
         redis = get_redis()
-        token, error = await auth_utils.token_save(
+        _, error = await auth_utils.token_save(
             old_token=token, new_token=new_token, user_agent=user_agent, user_id=user.id, redis=redis
         )
 
         if error == 'access_denied':
+            samesite = 'None' if settings.develop_mode else 'Lax'
+            secure_flag = 'Secure' if not settings.develop_mode else ''
+
+            cookie = f'token=; Max-Age=0; Path=/; SameSite={samesite}'
+            if secure_flag:
+                cookie += f'; {secure_flag}'
+
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={'detail': 'Access denied.'},
-                headers={'set-cookie': 'token=; Max-Age=0; Path=/; secure=true; SameSite=none'},
+                headers={'set-cookie': cookie},
             )
 
         response = await call_next(request)
