@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import Field
 
@@ -34,6 +35,7 @@ class ChatModel(Base):
     current_event_chance: float
     created_at: datetime
     updated_at: datetime
+    queue_position: int
 
 
 class ChatsModel(Base):
@@ -52,6 +54,7 @@ class ChatCreateModel(Base):
     """Model for creating a chat with optional title."""
 
     title: str
+    initial_context: Optional[str]
 
     progression_type: int = Field(
         ge=0,

@@ -13,8 +13,10 @@ class BaseDataclass:
         """Convert ORM object to dataclass instance (fails on missing fields)."""
         data = {}
         for field in fields(cls):
-            if not hasattr(orm_object, field.name) and get_origin(field.type) is not Union:
+            if not hasattr(orm_object, field.name) and (get_origin(field.type) is not Union):
                 raise AttributeError(f'Missing field in ORM object: {field.name}')
+            if get_origin(field.type) is Union and not hasattr(orm_object, field.name):
+                continue
             value = getattr(orm_object, field.name)
             data[field.name] = cls._convert_value(value, field.type)
         return cls(**data)

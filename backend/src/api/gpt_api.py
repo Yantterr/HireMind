@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 import src.controllers.gpt_controllers as gpt_controllers
 import src.dependencies.gpt_dependencies as gpt_dependencies
+import src.utils.gpt_utils as gpt_utils
 from src.dataclasses.gpt_dataclasses import ChatDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
@@ -66,16 +67,21 @@ async def chat_delete(
     return chat
 
 
-@gpt_router.post('/{chat_id}/messages', response_model=ChatModel)
+@gpt_router.put('/{chat_id}/messages', response_model=ChatModel)
 async def message_create(
     create_message_data: MessageCreateModel,
     redis: RedisDep,
     db: SessionDep,
     chat: Annotated[ChatDataclass, Depends(gpt_dependencies.get_chat)],
+    background_tasks: BackgroundTasks,
 ) -> ChatDataclass:
     """Create and send message to GPT chat."""
-    chat = await gpt_controllers.message_send(chat=chat, create_message_data=create_message_data, db=db, redis=redis)
+    queue_position = await gpt_utils.queue_add_task(redis=redis, chat_id=chat.id, user_id=chat.user_id)
+    background_tasks.add_task(
+        gpt_controllers.message_send, chat=chat, create_message_data=create_message_data, db=db, redis=redis
+    )
 
+    chat.queue_position = queue_position
     return chat
 
 
@@ -106,4 +112,5 @@ async def event_get_all(db: SessionDep) -> list[EventSchema]:
 @gpt_router.get('/{chat_id}', response_model=ChatModel)
 async def chat_get(chat: Annotated[ChatDataclass, Depends(gpt_dependencies.get_chat)]) -> ChatDataclass:
     """Get GPT chat by ID."""
+
     return chat

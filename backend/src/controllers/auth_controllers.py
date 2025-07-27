@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.services.auth_services as auth_service
 import src.utils.auth_utils as auth_utils
+from src.config import settings
 from src.dataclasses.auth_dataclasses import UserCreateDataclass, UserDataclass, UserLoginDataclass
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
@@ -53,7 +54,9 @@ async def create_user(
     await redis.set(name=f'{user_dataclass.id}/key/{user_agent}', value=str(key), expire=900)
 
     new_token = auth_utils.token_generate(user=user_dataclass)
-    await redis.set(name=f'{user_dataclass.id}/agent:{user_agent}', value=new_token, expire=2_592_000)
+    await redis.set(
+        name=f'{user_dataclass.id}/agent:{user_agent}', value=new_token, expire=settings.redis_token_time_live
+    )
 
     return UserCreateDataclass(
         user=user_dataclass,
@@ -80,7 +83,7 @@ async def login_user(
     user_dataclass = UserDataclass.from_orm(user_orm)
 
     token = auth_utils.token_generate(user=user_dataclass)
-    await redis.set(name=f'{user_dataclass.id}/agent:{user_agent}', value=token, expire=2_592_000)
+    await redis.set(name=f'{user_dataclass.id}/agent:{user_agent}', value=token, expire=settings.redis_token_time_live)
 
     return UserLoginDataclass(token=token, user=user_dataclass)
 
@@ -96,7 +99,7 @@ async def refresh_token(user: UserDataclass, user_agent: str, redis: AsyncRedis)
     """Refresh JWT token and update cookie."""
     new_token = auth_utils.token_generate(user=user)
 
-    await redis.set(name=f'{user.id}/agent:{user_agent}', value=new_token, expire=2_592_000)
+    await redis.set(name=f'{user.id}/agent:{user_agent}', value=new_token, expire=settings.redis_token_time_live)
 
     return new_token
 
@@ -130,6 +133,6 @@ async def confirm_email(
     await redis.delete(f'{user_id}/key/{user_agent}')
 
     new_token = auth_utils.token_generate(user=updated_user_dataclass)
-    await redis.set(name=f'{user_id}/agent:{user_agent}', value=new_token, expire=2_592_000)
+    await redis.set(name=f'{user_id}/agent:{user_agent}', value=new_token, expire=settings.redis_token_time_live)
 
     return UserLoginDataclass(token=new_token, user=updated_user_dataclass)

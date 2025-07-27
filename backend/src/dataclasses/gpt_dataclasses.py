@@ -15,7 +15,7 @@ class EventDataclass(BaseDataclass):
 
 @dataclass
 class MessageDataclass(BaseDataclass):
-    """User dataclass."""
+    """Message dataclass."""
 
     id: Optional[int]
     chat_id: int
@@ -26,7 +26,7 @@ class MessageDataclass(BaseDataclass):
 
 @dataclass
 class ChatDataclass(BaseDataclass):
-    """User dataclass."""
+    """Chat dataclass."""
 
     id: int
     user_id: int
@@ -40,13 +40,29 @@ class ChatDataclass(BaseDataclass):
     count_response_tokens: int
     created_at: str
     updated_at: str
+    queue_position: Optional[int] = 0
 
 
 @dataclass
 class NNResponseDataclass(BaseDataclass):
-    """User dataclass."""
+    """Neural Network response."""
 
     count_request_tokens: int
     count_response_tokens: int
     role: NNRoleEnum
     content: str
+
+
+@dataclass
+class NNQueueCellDataclass(BaseDataclass):
+    """Neural Network cell in queue."""
+
+    chat_id: int
+    user_id: int
+
+
+@dataclass
+class NNQueueDataclass(BaseDataclass):
+    """Neural Network queue dataclass."""
+
+    cells: list[NNQueueCellDataclass]

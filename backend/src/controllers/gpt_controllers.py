@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import src.engines.ollama_engine as ollama_engine
 import src.services.gpt_services as gpt_service
 import src.utils.gpt_utils as gpt_utils
-from src.config import NNConfig
+import src.utils.redis_utils as redis_utils
+from src.config import NNConfig, settings
 from src.dataclasses.gpt_dataclasses import ChatDataclass, EventDataclass, MessageDataclass
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
@@ -35,28 +36,52 @@ async def chat_create(
         if count_chats >= 1:
             raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
 
+    if create_chat_data.initial_context:
+        initial_context = await gpt_utils.ollama_generate_initial_context(create_chat_data.initial_context)
+    else:
+        initial_context = ''
+
     events = await gpt_utils.event_get_random(db=db)
 
     system_prompt_content = (
-        f'Вы собеседуете кандидата на позицию {NNConfig["language"][create_chat_data.language]} разработчика. '
-        f"""Имитируй живого человека, который помогает подготовиться к собеседованию.
-        Начни с короткого дружелюбного приветствия (1 предложение).
-        Задавай строго по одному вопросу за раз, даже если ответ пользователя будет односложным ("да"/"нет").
-        Всегда дожидайся ответа перед следующим вопросом.
-        Держи реплики краткими (максимум 2 предложения).
-        Активно слушай: используй уточнения и естественные реакции на ответы."""
-        f"""Имитируйте поведение обычного человека, вопросы задавай по очереди и начинай с
-        небольшого дружелюбного диалога для подготовки к собеседованию. Твои реплики должны быть не слишком длинные и
-        не задавай много вопросов подряд. Задавай новые вопросы по мере ответа на старые,
-        даже если ответ будет односложным типо: да или нет, то все равно жди ответа и не задавай новый вопрос."""
-        f'{NNConfig["difficulty"][create_chat_data.difficulty]} '
-        f'{NNConfig["politeness"][create_chat_data.politeness]} '
-        f'{NNConfig["friendliness"][create_chat_data.friendliness]} '
-        f'{NNConfig["rigidity"][create_chat_data.rigidity]} '
-        f'{NNConfig["detail_orientation"][create_chat_data.detail_orientation]} '
-        f'{NNConfig["pacing"][create_chat_data.pacing]}'
-    ) + ' '.join(event.content for event in events)
-
+        f'Ты — живой интервьюер с уникальной личностью, проводящий собеседование на позицию '
+        f'{NNConfig["language"][create_chat_data.language]} разработчика.'
+        'Критически важно соблюдать естественный диалоговый ритм:\n\n'
+        'ЖЕСТКИЕ ПРАВИЛА ДИАЛОГА:\n'
+        '1. Первое сообщение: ТОЛЬКО приветствие и представление (1-2 предложения)\n'
+        "   Пример: 'Привет! Я Алексей, senior-разработчик. Рад видеть тебя на собеседовании.'\n"
+        '2. После приветствия ОБЯЗАТЕЛЬНО ДОЖДИСЬ ответа кандидата\n'
+        '3. Только после ответа задай ПЕРВЫЙ вопрос\n'
+        '4. Всегда задавай строго по одному вопросу за реплику\n'
+        '5. Между вопросами ВСЕГДА жди ответа пользователя\n'
+        '6. Реплики должны быть краткими (1-2 предложения максимум)\n\n'
+        'ТЕХНИКИ ЕСТЕСТВЕННОГО ПОВЕДЕНИЯ:\n'
+        '- После ответа кандидата делай микропаузу (0.5-2 сек)\n'
+        "- Используй подтверждающие реплики ('Понял', 'Интересно')\n"
+        '- Задавай уточняющие вопросы по ответам\n'
+        "- Проявляй эмоциональные реакции ('О, необычный подход!')\n"
+        "- Допускай естественные паузы обдумывания ('Дай-ка подумать...')\n\n"
+        'СТРУКТУРА СОБЕСЕДОВАНИЯ:\n'
+        '1. Приветствие (только в первом сообщении)\n'
+        '2. Легкий разогревочный вопрос\n'
+        '3. Технические вопросы по вакансии\n'
+        '4. Поведенческие вопросы\n'
+        '5. Вопросы кандидату\n\n'
+        'ПАРАМЕТРЫ СТИЛЯ:\n'
+        f'• Сложность: {NNConfig["difficulty"][create_chat_data.difficulty]}\n'
+        f'• Вежливость: {NNConfig["politeness"][create_chat_data.politeness]}\n'
+        f'• Дружелюбие: {NNConfig["friendliness"][create_chat_data.friendliness]}\n'
+        f'• Жёсткость: {NNConfig["rigidity"][create_chat_data.rigidity]}\n'
+        f'• Детализация: {NNConfig["detail_orientation"][create_chat_data.detail_orientation]}\n'
+        f'• Темп: {NNConfig["pacing"][create_chat_data.pacing]}\n\n'
+        f'КОНТЕКСТ ВАКАНСИИ:\n{initial_context}\n\n'
+        'ДОПОЛНИТЕЛЬНЫЕ СОБЫТИЯ:\n' + '\n'.join(f'- {event.content}' for event in events) + '\n\n'
+        'ЗАПРЕЩЕНО:\n'
+        '- Задавать несколько вопросов подряд\n'
+        '- Продолжать без ответа пользователя\n'
+        '- Делать длинные монологи\n'
+        '- Использовать шаблонные фразы\n'
+    )
     event_chance = 1.5 if create_chat_data.progression_type == 0 else 10.0
     chat = await gpt_service.chat_create(
         db=db,
@@ -85,8 +110,7 @@ async def chat_create(
         )
     )
 
-    await redis.set(name=f'notifications/delete={user_id}/chat:{chat.id}', value='', expire=5)
-    await redis.set(name=f'{user_id}/chat:{chat.id}', value=dumps(asdict(chat_dataclass)), expire=10)
+    await gpt_utils.chat_save(chat=ChatDataclass.from_orm(chat), redis=redis)
 
     return chat_dataclass
 
@@ -100,7 +124,7 @@ async def chat_delete(chat_id: int, user_id: int, db: AsyncSession, redis: Async
         chat_dict = loads(redis_chat)
         chat_dataclass = ChatDataclass.from_dict(chat_dict)
 
-        chat = await gpt_utils.save_messages(chat=chat_dataclass, db=db)
+        chat = await redis_utils.save_messages(chat=chat_dataclass, db=db)
 
         await redis.delete(f'notifications/delete={user_id}/chat:{chat_id}')
         await redis.delete(f'{user_id}/chat:{chat_id}')
@@ -140,6 +164,9 @@ async def message_send(
     chat.current_event_chance = new_percent
 
     nn_response = await ollama_engine.ollama_request(messages=chat.messages)
+    await gpt_utils.queue_remove_task(redis=redis)
+
+    chat.queue_position = 0
     chat.count_request_tokens += nn_response.count_request_tokens
     chat.count_response_tokens += nn_response.count_response_tokens
     chat.messages.append(
@@ -152,13 +179,7 @@ async def message_send(
         )
     )
 
-    await redis.set(name=f'notifications/delete={chat.user_id}/chat:{chat.id}', value='', expire=5)
-    await redis.set(
-        name=f'{chat.user_id}/chat:{chat.id}',
-        value=dumps(asdict(chat)),
-        expire=10,
-    )
-
+    await gpt_utils.chat_save(chat=chat, redis=redis)
     chat.updated_at = datetime.now().isoformat()
 
     return chat

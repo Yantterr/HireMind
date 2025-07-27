@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import src.services.gpt_services as gpt_service
-import src.utils.gpt_utils as gpt_utils
+import src.utils.redis_utils as redis_utils
 from src.config import settings
 from src.dataclasses.gpt_dataclasses import ChatDataclass
 from src.engines.database_engine import session_factory
@@ -19,10 +19,8 @@ async def init_redis() -> None:
     """Initialization the Redis client connection with parameters from settings."""
     global redis_client
     redis_client = Redis(
-        host=settings.redis_host,
-        port=settings.redis_port,
-        password=settings.redis_password.get_secret_value(),
         decode_responses=True,
+        **settings.redis_settings,
     )
     await redis_client.ping()
     await redis_client.config_set('notify-keyspace-events', 'Ex')
@@ -67,7 +65,7 @@ async def save_expired_chat(message: dict, session_factory: async_sessionmaker[A
         chat = ChatDataclass.from_dict(loads(chat_data_json))
 
         async with session_factory() as session:
-            await gpt_utils.save_messages(chat=chat, db=session)
+            await redis_utils.save_messages(chat=chat, db=session)
             await gpt_service.chat_edit(
                 db=session,
                 chat_id=chat.id,
@@ -107,7 +105,7 @@ class AsyncRedis:
         assert isinstance(result, Awaitable)
         return result
 
-    def set(self, name: str, value: str, expire: int) -> Awaitable[str]:
+    def set(self, name: str, value: str, expire: Optional[int] = None) -> Awaitable[str]:
         """Set asynchronously a key in Redis."""
         result = self.redis_engine.set(name=name, value=value, ex=expire)
         assert isinstance(result, Awaitable)

@@ -24,11 +24,11 @@ async def chat_get_all(db: AsyncSession, user_id: int) -> list[ChatSchema]:
     return list(chats)
 
 
-async def chat_get(db: AsyncSession, chat_id: int) -> Optional[ChatSchema]:
+async def chat_get(db: AsyncSession, chat_id: int, user_id: int) -> Optional[ChatSchema]:
     """Get a non-archived chat by ID."""
     request = (
         select(ChatSchema)
-        .where(ChatSchema.id == chat_id, ~ChatSchema.is_archived)
+        .where(ChatSchema.id == chat_id, ~ChatSchema.is_archived, ChatSchema.user_id == user_id)
         .options(selectinload(ChatSchema.messages))
         .options(selectinload(ChatSchema.events))
     )
