@@ -3,9 +3,9 @@ from dataclasses import asdict
 import httpx
 
 from src.config import settings
-from src.dataclasses.gpt_dataclasses import MessageDataclass
+from src.dataclasses.chats_dataclasses import MessageDataclass
+from src.models.chats_models import NNResponseModel
 from src.models.generally_models import NNRoleEnum
-from src.models.gpt_models import NNResponseModel
 
 
 async def ollama_request(messages: list[MessageDataclass]) -> NNResponseModel:

@@ -1,36 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.dataclasses.generally_dataclasses import BaseDataclass
-from src.models.generally_models import SystemRoleEnum
-
-
-@dataclass
-class UserDataclass(BaseDataclass):
-    """User dataclass."""
-
-    id: int
-    username: str
-    email: str
-    role: SystemRoleEnum
-    is_activated: bool
-
-
-@dataclass
-class UserCreateDataclass:
-    """User create dataclass."""
-
-    user: UserDataclass
-    token: str
-    key: int
-
-
-@dataclass
-class UserLoginDataclass:
-    """Login dataclass."""
-
-    token: str
-    user: UserDataclass
+from src.dataclasses.users_dataclasses import UserDataclass
 
 
 @dataclass
@@ -40,6 +11,23 @@ class AuthDataclass:
     user: UserDataclass
     user_agent: str
     token: str
+
+
+@dataclass
+class AuthRegisterDataclass:
+    """User create dataclass."""
+
+    user: UserDataclass
+    token: str
+    key: int
+
+
+@dataclass
+class AuthLoginDataclass:
+    """Login dataclass."""
+
+    token: str
+    user: UserDataclass
 
 
 @dataclass

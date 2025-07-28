@@ -2,14 +2,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
-import src.controllers.gpt_controllers as gpt_controllers
-import src.dependencies.gpt_dependencies as gpt_dependencies
-import src.utils.gpt_utils as gpt_utils
-from src.dataclasses.gpt_dataclasses import ChatDataclass
+import src.controllers.chats_controllers as chats_controllers
+import src.dependencies.chats_dependencies as chats_dependencies
+import src.utils.chats_utils as chats_utils
+from src.dataclasses.chats_dataclasses import ChatDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
 from src.logger import Logger
-from src.models.gpt_models import (
+from src.models.chats_models import (
     ChatCreateModel,
     ChatModel,
     ChatsModel,
@@ -19,25 +19,25 @@ from src.models.gpt_models import (
 )
 from src.schemas import ChatSchema, EventSchema
 
-gpt_router = APIRouter(
-    prefix='/gpt',
-    tags=['gpt'],
+chats_router = APIRouter(
+    prefix='/chats',
+    tags=['chats'],
 )
 
 
-@gpt_router.get('/', response_model=list[ChatsModel])
+@chats_router.get('/', response_model=list[ChatsModel])
 async def chats_get_all(
     request: Request,
     db: SessionDep,
 ) -> list[ChatSchema]:
     """Get all GPT chats for the authorized user."""
     user = request.state.user
-    chats = await gpt_controllers.chats_get_all(user_id=user.id, db=db)
+    chats = await chats_controllers.chats_get_all(user_id=user.id, db=db)
 
     return chats
 
 
-@gpt_router.post('/', response_model=ChatModel)
+@chats_router.post('/', response_model=ChatModel)
 async def chat_create(
     request: Request,
     db: SessionDep,
@@ -46,14 +46,14 @@ async def chat_create(
 ) -> ChatDataclass:
     """Create a new GPT chat."""
     user = request.state.user
-    chat = await gpt_controllers.chat_create(
+    chat = await chats_controllers.chat_create(
         db=db, redis=redis, create_chat_data=create_chat_data, user_id=user.id, user_role=user.role
     )
 
     return chat
 
 
-@gpt_router.delete('/{chat_id}', response_model=ChatModel)
+@chats_router.delete('/{chat_id}', response_model=ChatModel)
 async def chat_delete(
     request: Request,
     chat_id: int,
@@ -62,30 +62,30 @@ async def chat_delete(
 ) -> ChatDataclass:
     """Delete GPT chat by ID (soft delete)."""
     user = request.state.user
-    chat = await gpt_controllers.chat_delete(user_id=user.id, redis=redis, chat_id=chat_id, db=db)
+    chat = await chats_controllers.chat_delete(user_id=user.id, redis=redis, chat_id=chat_id, db=db)
 
     return chat
 
 
-@gpt_router.put('/{chat_id}/messages', response_model=ChatModel)
+@chats_router.put('/{chat_id}/messages', response_model=ChatModel)
 async def message_create(
     create_message_data: MessageCreateModel,
     redis: RedisDep,
     db: SessionDep,
-    chat: Annotated[ChatDataclass, Depends(gpt_dependencies.get_chat)],
+    chat: Annotated[ChatDataclass, Depends(chats_dependencies.get_chat)],
     background_tasks: BackgroundTasks,
 ) -> ChatDataclass:
     """Create and send message to GPT chat."""
-    queue_position = await gpt_utils.queue_add_task(redis=redis, chat_id=chat.id, user_id=chat.user_id)
+    queue_position = await chats_utils.queue_add_task(redis=redis, chat_id=chat.id, user_id=chat.user_id)
     background_tasks.add_task(
-        gpt_controllers.message_send, chat=chat, create_message_data=create_message_data, db=db, redis=redis
+        chats_controllers.message_send, chat=chat, create_message_data=create_message_data, db=db, redis=redis
     )
 
     chat.queue_position = queue_position
     return chat
 
 
-@gpt_router.post('/event', response_model=EventModel)
+@chats_router.post('/event', response_model=EventModel)
 async def event_create(
     request: Request,
     event_create_data: EventCreateModel,
@@ -96,21 +96,20 @@ async def event_create(
     if user.role != 'admin':
         raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
 
-    event = await gpt_controllers.event_create(db=db, event_create_data=event_create_data)
+    event = await chats_controllers.event_create(db=db, event_create_data=event_create_data)
 
     return event
 
 
-@gpt_router.get('/event', response_model=list[EventModel])
+@chats_router.get('/event', response_model=list[EventModel])
 async def event_get_all(db: SessionDep) -> list[EventSchema]:
     """Get all GPT events."""
-    events = await gpt_controllers.event_get_all(db=db)
+    events = await chats_controllers.event_get_all(db=db)
 
     return events
 
 
-@gpt_router.get('/{chat_id}', response_model=ChatModel)
-async def chat_get(chat: Annotated[ChatDataclass, Depends(gpt_dependencies.get_chat)]) -> ChatDataclass:
+@chats_router.get('/{chat_id}', response_model=ChatModel)
+async def chat_get(chat: Annotated[ChatDataclass, Depends(chats_dependencies.get_chat)]) -> ChatDataclass:
     """Get GPT chat by ID."""
-
     return chat

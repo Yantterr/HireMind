@@ -1,19 +1,18 @@
-from dataclasses import asdict
 from datetime import datetime
-from json import dumps, loads
+from json import loads
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.engines.ollama_engine as ollama_engine
-import src.services.gpt_services as gpt_service
-import src.utils.gpt_utils as gpt_utils
+import src.services.chats_services as gpt_service
+import src.utils.chats_utils as chats_utils
 import src.utils.redis_utils as redis_utils
-from src.config import NNConfig, settings
-from src.dataclasses.gpt_dataclasses import ChatDataclass, EventDataclass, MessageDataclass
+from src.config import NNConfig
+from src.dataclasses.chats_dataclasses import ChatDataclass, EventDataclass, MessageDataclass
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
+from src.models.chats_models import ChatCreateModel, EventCreateModel, MessageCreateModel
 from src.models.generally_models import NNRoleEnum, SystemRoleEnum
-from src.models.gpt_models import ChatCreateModel, EventCreateModel, MessageCreateModel
 from src.schemas import ChatSchema, EventSchema
 
 
@@ -37,11 +36,11 @@ async def chat_create(
             raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
 
     if create_chat_data.initial_context:
-        initial_context = await gpt_utils.ollama_generate_initial_context(create_chat_data.initial_context)
+        initial_context = await chats_utils.ollama_generate_initial_context(create_chat_data.initial_context)
     else:
         initial_context = ''
 
-    events = await gpt_utils.event_get_random(db=db)
+    events = await chats_utils.event_get_random(db=db)
 
     system_prompt_content = (
         f'Ты — живой интервьюер с уникальной личностью, проводящий собеседование на позицию '
@@ -110,7 +109,7 @@ async def chat_create(
         )
     )
 
-    await gpt_utils.chat_save(chat=ChatDataclass.from_orm(chat), redis=redis)
+    await chats_utils.chat_save(chat=ChatDataclass.from_orm(chat), redis=redis)
 
     return chat_dataclass
 
@@ -148,7 +147,7 @@ async def message_send(
         )
     )
 
-    random_event, new_percent = await gpt_utils.event_get_one(db=db, chat=chat)
+    random_event, new_percent = await chats_utils.event_get_one(db=db, chat=chat)
     if random_event:
         chat.events.append(EventDataclass.from_orm(random_event))
         chat.messages.append(
@@ -164,7 +163,7 @@ async def message_send(
     chat.current_event_chance = new_percent
 
     nn_response = await ollama_engine.ollama_request(messages=chat.messages)
-    await gpt_utils.queue_remove_task(redis=redis)
+    await chats_utils.queue_remove_task(redis=redis)
 
     chat.queue_position = 0
     chat.count_request_tokens += nn_response.count_request_tokens
@@ -179,7 +178,7 @@ async def message_send(
         )
     )
 
-    await gpt_utils.chat_save(chat=chat, redis=redis)
+    await chats_utils.chat_save(chat=chat, redis=redis)
     chat.updated_at = datetime.now().isoformat()
 
     return chat

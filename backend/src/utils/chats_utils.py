@@ -7,9 +7,9 @@ from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import src.services.gpt_services as gpt_service
+import src.services.chats_services as gpt_service
 from src.config import settings
-from src.dataclasses.gpt_dataclasses import ChatDataclass, MessageDataclass, NNQueueCellDataclass, NNQueueDataclass
+from src.dataclasses.chats_dataclasses import ChatDataclass, MessageDataclass, NNQueueCellDataclass, NNQueueDataclass
 from src.engines.ollama_engine import ollama_request
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger

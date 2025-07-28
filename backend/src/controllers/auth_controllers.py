@@ -3,9 +3,11 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.services.auth_services as auth_service
+import src.services.users_services as users_service
 import src.utils.auth_utils as auth_utils
 from src.config import settings
-from src.dataclasses.auth_dataclasses import UserCreateDataclass, UserDataclass, UserLoginDataclass
+from src.dataclasses.auth_dataclasses import AuthLoginDataclass, AuthRegisterDataclass
+from src.dataclasses.users_dataclasses import UserDataclass
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
 from src.models.auth_models import UserCreateModel, UserLoginModel
@@ -18,11 +20,11 @@ async def create_user(
     user_agent: str,
     db: AsyncSession,
     redis: AsyncRedis,
-) -> UserCreateDataclass:
+) -> AuthRegisterDataclass:
     """Create a new user."""
-    if await auth_service.get_user_by_email(
+    if await users_service.get_user_by_email(
         db=db, email=user_create_data.email
-    ) or await auth_service.get_user_by_username(db=db, username=user_create_data.username):
+    ) or await users_service.get_user_by_username(db=db, username=user_create_data.username):
         raise Logger.create_response_error(error_key='user_already_exists', is_cookie_remove=False)
 
     hashed_password = auth_utils.get_password_hash(user_create_data.password)
@@ -31,7 +33,7 @@ async def create_user(
         if user_dataclass_old.role != SystemRoleEnum.ANONYM:
             raise Logger.create_response_error(error_key='user_already_exists', is_cookie_remove=False)
 
-        user_orm = await auth_service.edit_user(
+        user_orm = await users_service.edit_user(
             db=db,
             user_id=user_dataclass_old.id,
             role=SystemRoleEnum.USER,
@@ -58,7 +60,7 @@ async def create_user(
         name=f'{user_dataclass.id}/agent:{user_agent}', value=new_token, expire=settings.redis_token_time_live
     )
 
-    return UserCreateDataclass(
+    return AuthRegisterDataclass(
         user=user_dataclass,
         token=new_token,
         key=key,
@@ -67,9 +69,9 @@ async def create_user(
 
 async def login_user(
     login_data: UserLoginModel, user_agent: str, db: AsyncSession, redis: AsyncRedis
-) -> UserLoginDataclass:
+) -> AuthLoginDataclass:
     """Login user."""
-    user_orm = await auth_service.get_user_by_email(db=db, email=login_data.email)
+    user_orm = await users_service.get_user_by_email(db=db, email=login_data.email)
     if not user_orm:
         raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
 
@@ -85,7 +87,7 @@ async def login_user(
     token = auth_utils.token_generate(user=user_dataclass)
     await redis.set(name=f'{user_dataclass.id}/agent:{user_agent}', value=token, expire=settings.redis_token_time_live)
 
-    return UserLoginDataclass(token=token, user=user_dataclass)
+    return AuthLoginDataclass(token=token, user=user_dataclass)
 
 
 async def logout_user(user_id: int, user_agent: str, redis: AsyncRedis) -> str:
@@ -117,7 +119,7 @@ async def email_new_key(user_id: int, user_agent: str, redis: AsyncRedis) -> int
 
 async def confirm_email(
     user_id: int, user_agent: str, key: int, redis: AsyncRedis, db: AsyncSession
-) -> UserLoginDataclass:
+) -> AuthLoginDataclass:
     """Confirm email."""
     redis_key = await redis.get(f'{user_id}/key/{user_agent}')
 
@@ -127,7 +129,7 @@ async def confirm_email(
     if int(redis_key) != key:
         raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
 
-    updated_user = await auth_service.edit_user(db=db, user_id=user_id, is_activated=True)
+    updated_user = await users_service.edit_user(db=db, user_id=user_id, is_activated=True)
     updated_user_dataclass = UserDataclass.from_orm(updated_user)
 
     await redis.delete(f'{user_id}/key/{user_agent}')
@@ -135,4 +137,4 @@ async def confirm_email(
     new_token = auth_utils.token_generate(user=updated_user_dataclass)
     await redis.set(name=f'{user_id}/agent:{user_agent}', value=new_token, expire=settings.redis_token_time_live)
 
-    return UserLoginDataclass(token=new_token, user=updated_user_dataclass)
+    return AuthLoginDataclass(token=new_token, user=updated_user_dataclass)

@@ -6,11 +6,17 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
+from src.api.admins_api import admins_router
 from src.api.auth_api import auth_router
-from src.api.gpt_api import gpt_router
+from src.api.chats_api import chats_router
+from src.api.users_api import users_router
 from src.config import settings
 from src.engines.redis_engine import close_redis, init_redis, listen_redis_chat_expired
-from src.middlewares.auth_middlewares import AnonymousUserTokenMiddleware, ValidateTokenAndAuthMiddleware
+from src.middlewares.auth_middlewares import (
+    AnonymousUserTokenMiddleware,
+    CheckAdminPrivilegesMiddleware,
+    ValidateTokenAndAuthMiddleware,
+)
 
 
 @asynccontextmanager
@@ -39,12 +45,14 @@ if settings.backend_cors_origins:
         allow_headers=['*'],
     )
 
-
+app.add_middleware(CheckAdminPrivilegesMiddleware)
 app.add_middleware(ValidateTokenAndAuthMiddleware)
 app.add_middleware(AnonymousUserTokenMiddleware)
 
 app.include_router(auth_router)
-app.include_router(gpt_router)
+app.include_router(chats_router)
+app.include_router(users_router)
+app.include_router(admins_router)
 
 
 if __name__ == '__main__':

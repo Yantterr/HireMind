@@ -6,10 +6,10 @@ from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-import src.services.gpt_services as gpt_service
+import src.services.chats_services as gpt_service
 import src.utils.redis_utils as redis_utils
 from src.config import settings
-from src.dataclasses.gpt_dataclasses import ChatDataclass
+from src.dataclasses.chats_dataclasses import ChatDataclass
 from src.engines.database_engine import session_factory
 
 redis_client: Redis | None = None

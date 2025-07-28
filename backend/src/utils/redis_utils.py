@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dataclasses.gpt_dataclasses import ChatDataclass, MessageDataclass
+from src.dataclasses.chats_dataclasses import ChatDataclass, MessageDataclass
 from src.schemas import MessageSchema
 
 

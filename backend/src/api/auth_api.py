@@ -2,7 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Request, Response
 from fastapi_mail import MessageType
 
 import src.controllers.auth_controllers as auth_controllers
-import src.services.auth_services as auth_service
+import src.services.users_services as users_service
 import src.utils.auth_utils as auth_utils
 import src.utils.generally_utils as generally_utils
 from src.config import settings
@@ -87,15 +87,6 @@ async def logout_user(
     return ResponseModel(message=message)
 
 
-@auth_router.get('/me', response_model=UserModel)
-async def get_current_user(
-    request: Request,
-) -> UserDataclass:
-    """Get current user by token from cookie."""
-    user = request.state.user
-    return user
-
-
 @auth_router.get('/key', response_model=ResponseModel)
 async def get_new_key(
     request: Request,
@@ -108,7 +99,7 @@ async def get_new_key(
     user_state = request.state.user
 
     new_key = await auth_controllers.email_new_key(user_agent=auth_info.user_agent, user_id=user_state.id, redis=redis)
-    user_orm = await auth_service.get_user(db=db, user_id=user_state.id)
+    user_orm = await users_service.get_user_by_id(db=db, user_id=user_state.id)
 
     if not user_orm or not user_orm.email:
         raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
