@@ -14,7 +14,6 @@ from src.config import settings
 from src.engines.redis_engine import close_redis, init_redis, listen_redis_chat_expired
 from src.middlewares.auth_middlewares import (
     AnonymousUserTokenMiddleware,
-    CheckAdminPrivilegesMiddleware,
     ValidateTokenAndAuthMiddleware,
 )
 
@@ -45,7 +44,6 @@ if settings.backend_cors_origins:
         allow_headers=['*'],
     )
 
-app.add_middleware(CheckAdminPrivilegesMiddleware)
 app.add_middleware(ValidateTokenAndAuthMiddleware)
 app.add_middleware(AnonymousUserTokenMiddleware)
 

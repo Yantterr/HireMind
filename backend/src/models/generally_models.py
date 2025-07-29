@@ -4,19 +4,25 @@ from pydantic import BaseModel
 
 
 class Base(BaseModel):
-    """Base Pydantic model with ORM and enum value support."""
+    """Base model configuration.
+
+    This configuration includes:
+    - ORM mode
+    - Enum value serialization
+    - Strict input validation
+    """
 
     model_config = {'from_attributes': True, 'use_enum_values': True, 'extra': 'forbid'}
 
 
 class ResponseModel(Base):
-    """Response model containing a message string."""
+    """Standard API response containing a message string."""
 
     message: str
 
 
 class NNRoleEnum(StrEnum):
-    """Roles for neural network participants."""
+    """Defines participant roles in neural network interactions."""
 
     USER = 'user'
     SYSTEM = 'system'
@@ -24,7 +30,7 @@ class NNRoleEnum(StrEnum):
 
 
 class SystemRoleEnum(StrEnum):
-    """System user roles."""
+    """Defines access levels within the application ecosystem."""
 
     ADMIN = 'admin'
     USER = 'user'

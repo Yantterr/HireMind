@@ -50,29 +50,6 @@ class AnonymousUserTokenMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class CheckAdminPrivilegesMiddleware(BaseHTTPMiddleware):
-    """Middleware for check admin privileges."""
-
-    async def dispatch(
-        self,
-        request: Request,
-        call_next,
-    ):
-        """Check admin privileges."""
-        if (
-            request.url.path.startswith('/auth')
-            or request.url.path.startswith('/chats')
-            or request.url.path == '/users/me'
-        ):
-            return await call_next(request)
-
-        user = request.state.user
-        if user.role != SystemRoleEnum.ADMIN:
-            return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={'detail': 'Access denied.'})
-
-        return await call_next(request)
-
-
 class ValidateTokenAndAuthMiddleware(BaseHTTPMiddleware):
     """Middleware for validate token."""
 

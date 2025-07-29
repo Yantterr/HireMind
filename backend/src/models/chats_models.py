@@ -5,25 +5,30 @@ from pydantic import Field
 
 from src.models.generally_models import Base, NNRoleEnum
 
+# Common field configurations for rating scales
+RATING_FIELD = Field(ge=0, le=4, description='Rating scale from 0 to 4 inclusive')
+LANGUAGE_FIELD = Field(ge=0, le=9, description='Programming language identifier (0-9 inclusive)')
+PROGRESSION_FIELD = Field(ge=0, le=1, description='0: arithmetic progression, 1: geometric progression')
+
 
 class MessageModel(Base):
-    """Response model containing a message string."""
+    """Individual message within a chat conversation."""
 
-    id: int | None
+    id: Optional[int] = None
     role: NNRoleEnum
     content: str
     created_at: datetime
 
 
 class EventModel(Base):
-    """Response model containing a chat event."""
+    """Significant event occurring within a chat session."""
 
     id: int
     content: str
 
 
 class ChatModel(Base):
-    """Model for retrieving chat details."""
+    """Complete chat session with metadata and content."""
 
     id: int
     title: str
@@ -39,7 +44,7 @@ class ChatModel(Base):
 
 
 class ChatsModel(Base):
-    """Model for retrieving list of chats."""
+    """Minimal chat representation for listing purposes."""
 
     id: int
     title: str
@@ -51,43 +56,35 @@ class ChatsModel(Base):
 
 
 class ChatCreateModel(Base):
-    """Model for creating a chat with optional title."""
+    """Parameters for initializing a new chat session."""
 
     title: str
-    initial_context: Optional[str]
-
-    progression_type: int = Field(
-        ge=0,
-        le=1,
-        description='Value must be between 0 and 1 inclusive. 0 - arithmetic progression, 1 - geometric progression.',
-    )
-
-    difficulty: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
-    politeness: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
-    friendliness: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
-    rigidity: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
-    detail_orientation: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
-    pacing: int = Field(ge=0, le=4, description='Value must be between 0 and 4 inclusive.')
-    language: int = Field(
-        ge=0, le=9, description='Value must be between 0 and 9 inclusive. Represents the programming language used.'
-    )
+    initial_context: Optional[str] = None
+    progression_type: int = PROGRESSION_FIELD
+    difficulty: int = RATING_FIELD
+    politeness: int = RATING_FIELD
+    friendliness: int = RATING_FIELD
+    rigidity: int = RATING_FIELD
+    detail_orientation: int = RATING_FIELD
+    pacing: int = RATING_FIELD
+    language: int = LANGUAGE_FIELD
 
 
 class MessageCreateModel(Base):
-    """Model for creating a message."""
+    """Payload for adding a new message to a chat."""
 
     role: NNRoleEnum
     content: str
 
 
 class EventCreateModel(Base):
-    """Model for create a event."""
+    """Payload for recording a chat event."""
 
     content: str
 
 
 class NNResponseModel(Base):
-    """Response model containing a message string."""
+    """AI-generated response with token usage metrics."""
 
     count_request_tokens: int
     count_response_tokens: int

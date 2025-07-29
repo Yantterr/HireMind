@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     email_port: int
     email_server: str
 
+    system_roles: list[str] = ['anonym', 'user', 'admin']
+
     @property
     def email_config(self) -> ConnectionConfig:
         """Construct a ConnectionConfig object for FastAPI-Mail."""

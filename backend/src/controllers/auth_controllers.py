@@ -115,26 +115,3 @@ async def email_new_key(user_id: int, user_agent: str, redis: AsyncRedis) -> int
     await redis.set(name=f'{user_id}/key/{user_agent}', value=str(new_key), expire=900)
 
     return new_key
-
-
-async def confirm_email(
-    user_id: int, user_agent: str, key: int, redis: AsyncRedis, db: AsyncSession
-) -> AuthLoginDataclass:
-    """Confirm email."""
-    redis_key = await redis.get(f'{user_id}/key/{user_agent}')
-
-    if redis_key is None:
-        raise Logger.create_response_error(error_key='data_not_found', is_cookie_remove=False)
-
-    if int(redis_key) != key:
-        raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
-
-    updated_user = await users_service.edit_user(db=db, user_id=user_id, is_activated=True)
-    updated_user_dataclass = UserDataclass.from_orm(updated_user)
-
-    await redis.delete(f'{user_id}/key/{user_agent}')
-
-    new_token = auth_utils.token_generate(user=updated_user_dataclass)
-    await redis.set(name=f'{user_id}/agent:{user_agent}', value=new_token, expire=settings.redis_token_time_live)
-
-    return AuthLoginDataclass(token=new_token, user=updated_user_dataclass)

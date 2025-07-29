@@ -30,7 +30,7 @@ async def chats_get_all(
     request: Request,
     db: SessionDep,
 ) -> list[ChatSchema]:
-    """Get all GPT chats for the authorized user."""
+    """Get all GPT chats."""
     user = request.state.user
     chats = await chats_controllers.chats_get_all(user_id=user.id, db=db)
 
