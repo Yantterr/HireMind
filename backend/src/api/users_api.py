@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, Response
 
 import src.controllers.users_controllers as users_controllers
 import src.dependencies.auth_dependencies as auth_dependencies
+import src.dependencies.generally_dependencies as generally_dependencies
 import src.services.users_services as users_services
 import src.utils.auth_utils as auth_utils
 from src.config import settings
@@ -12,6 +13,7 @@ from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
 from src.logger import Logger
 from src.models.auth_models import UserConfirmEmailModel, UserModel
+from src.models.generally_models import PaginatedResponseModel, PaginationParamsModel
 from src.schemas import UserSchema
 
 users_router = APIRouter(prefix='/users', tags=['users'])
@@ -47,13 +49,25 @@ async def confirm_email(
     return result.user
 
 
-@users_router.get('/', response_model=list[UserModel])
-async def get_all_users(db: SessionDep, request: Request) -> list[UserSchema]:
+@users_router.get('/', response_model=PaginatedResponseModel[UserModel])
+async def get_all_users(
+    pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
+    db: SessionDep,
+    request: Request,
+) -> PaginatedResponseModel[UserModel]:
     """Get list of users."""
     await auth_dependencies.require_permission('admin')(request=request)
-    users = await users_services.get_users(db=db)
+    users, page, per_page, total_items, total_pages = await users_services.get_users(
+        db=db, page=pagination_params.page, per_page=pagination_params.per_page
+    )
 
-    return users
+    return PaginatedResponseModel(
+        items=[UserModel.model_validate(user) for user in users],
+        page=page,
+        per_page=per_page,
+        total_items=total_items,
+        total_pages=total_pages,
+    )
 
 
 @users_router.get('/{user_id}', response_model=UserModel)

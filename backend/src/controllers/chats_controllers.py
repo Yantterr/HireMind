@@ -16,11 +16,13 @@ from src.models.generally_models import NNRoleEnum, SystemRoleEnum
 from src.schemas import ChatSchema, EventSchema
 
 
-async def chats_get_all(db: AsyncSession, user_id: int) -> list[ChatSchema]:
+async def chats_get_all(
+    db: AsyncSession, per_page: int, page: int, role: SystemRoleEnum, user_id: int
+) -> tuple[list[ChatSchema], int, int, int, int]:
     """Get all GPT chats for the authorized user."""
-    chats = await gpt_service.chat_get_all(user_id=user_id, db=db)
+    filter_user_id = None if role == SystemRoleEnum.ADMIN else user_id
 
-    return chats
+    return await gpt_service.chat_get_all(db=db, user_id=filter_user_id, per_page=per_page, page=page)
 
 
 async def chat_create(
@@ -191,8 +193,6 @@ async def event_create(event_create_data: EventCreateModel, db: AsyncSession) ->
     return new_event
 
 
-async def event_get_all(db: AsyncSession) -> list[EventSchema]:
+async def event_get_all(db: AsyncSession, page: int, per_page: int) -> tuple[list[EventSchema], int, int, int, int]:
     """Get all events."""
-    events = await gpt_service.event_get_all(db=db)
-
-    return events
+    return await gpt_service.event_get_all(db=db, page=page, per_page=per_page)

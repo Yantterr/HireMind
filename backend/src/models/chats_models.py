@@ -47,11 +47,9 @@ class ChatsModel(Base):
     """Minimal chat representation for listing purposes."""
 
     id: int
+    user_id: int
     title: str
     is_archived: bool
-    count_request_tokens: int
-    count_response_tokens: int
-    created_at: datetime
     updated_at: datetime
 
 
