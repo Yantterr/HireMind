@@ -1,10 +1,10 @@
-from dataclasses import asdict
-from json import dumps, loads
+from json import loads
 
 from fastapi import Request
 
-import src.services.gpt_services as gpt_service
-from src.dataclasses.gpt_dataclasses import ChatDataclass
+import src.services.chats_services as gpt_service
+import src.utils.chats_utils as chats_utils
+from src.dataclasses.chats_dataclasses import ChatDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
 from src.logger import Logger
@@ -24,16 +24,14 @@ async def get_chat(
         chat = loads(redis_chat)
         return ChatDataclass.from_dict(chat)
 
-    chat = await gpt_service.chat_get(db=db, chat_id=chat_id)
-
+    chat = await gpt_service.chat_get(db=db, user_id=user_id, chat_id=chat_id)
     if not chat:
         raise Logger.create_response_error(error_key='data_not_found')
 
-    await redis.set(name=f'notifications/delete={user_id}/chat:{chat_id}', value='', expire=3500)
-    await redis.set(
-        name=f'{user_id}/chat:{chat.id}',
-        value=dumps(asdict(ChatDataclass.from_orm(chat))),
-        expire=3600,
-    )
+    chat_dataclass = ChatDataclass.from_orm(chat)
+    queue_position = await chats_utils.queue_get_position(redis=redis, chat_id=chat_id)
+    chat_dataclass.queue_position = queue_position
 
-    return ChatDataclass.from_orm(chat)
+    await chats_utils.chat_save(chat=chat_dataclass, redis=redis)
+
+    return chat_dataclass

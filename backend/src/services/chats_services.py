@@ -1,34 +1,58 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import noload, selectinload
+from sqlalchemy.orm import load_only, selectinload
 
-from src.dataclasses.gpt_dataclasses import EventDataclass
+from src.dataclasses.chats_dataclasses import EventDataclass
 from src.logger import Logger
 from src.models.generally_models import NNRoleEnum
 from src.schemas import ChatSchema, EventSchema, MessageSchema
 
 
-async def chat_get_all(db: AsyncSession, user_id: int) -> list[ChatSchema]:
+async def chat_get_all(
+    db: AsyncSession, per_page: int, page: int, user_id: Optional[int]
+) -> tuple[list[ChatSchema], int, int, int, int]:
     """Get all non-archived chats from database."""
-    request = (
-        select(ChatSchema)
-        .where(and_(ChatSchema.user_id == user_id, ~ChatSchema.is_archived))
-        .options(noload(ChatSchema.messages))
+    base_query = select(ChatSchema).where(~ChatSchema.is_archived)
+    if user_id is not None:
+        base_query = base_query.where(ChatSchema.user_id == user_id)
+
+    count_query = base_query.with_only_columns(func.count())
+    total_result = await db.execute(count_query)
+    total_items = total_result.scalar_one()
+
+    total_pages = (total_items + per_page - 1) // per_page
+    offset = (page - 1) * per_page
+
+    data_query = (
+        base_query.offset(offset)
+        .limit(per_page)
+        .options(
+            load_only(
+                ChatSchema.id,
+                ChatSchema.user_id,
+                ChatSchema.title,
+                ChatSchema.updated_at,
+                ChatSchema.created_at,
+                ChatSchema.is_archived,
+            )
+        )
+        .order_by(ChatSchema.updated_at.desc())
     )
-    result = await db.execute(request)
+
+    result = await db.execute(data_query)
     chats = result.scalars().all()
 
-    return list(chats)
+    return list(chats), page, per_page, total_items, total_pages
 
 
-async def chat_get(db: AsyncSession, chat_id: int) -> Optional[ChatSchema]:
+async def chat_get(db: AsyncSession, chat_id: int, user_id: int) -> Optional[ChatSchema]:
     """Get a non-archived chat by ID."""
     request = (
         select(ChatSchema)
-        .where(ChatSchema.id == chat_id, ~ChatSchema.is_archived)
+        .where(ChatSchema.id == chat_id, ~ChatSchema.is_archived, ChatSchema.user_id == user_id)
         .options(selectinload(ChatSchema.messages))
         .options(selectinload(ChatSchema.events))
     )
@@ -144,13 +168,32 @@ async def event_create(db: AsyncSession, content: str) -> EventSchema:
     return new_event
 
 
-async def event_get_all(db: AsyncSession) -> list[EventSchema]:
+async def event_get_all(db: AsyncSession, page: int, per_page: int) -> tuple[list[EventSchema], int, int, int, int]:
     """Get all events from database."""
-    request = select(EventSchema)
-    result = await db.execute(request)
+    base_query = select(EventSchema)
+
+    count_query = base_query.with_only_columns(func.count())
+    total_result = await db.execute(count_query)
+    total_items = total_result.scalar_one()
+
+    total_pages = (total_items + per_page - 1) // per_page
+    offset = (page - 1) * per_page
+
+    data_query = (
+        base_query.offset(offset)
+        .limit(per_page)
+        .options(
+            load_only(
+                EventSchema.id,
+                EventSchema.content,
+            )
+        )
+    )
+
+    result = await db.execute(data_query)
     events = result.scalars().all()
 
-    return list(events)
+    return list(events), page, per_page, total_items, total_pages
 
 
 async def event_get_random(db: AsyncSession, count: int) -> list[EventSchema]:

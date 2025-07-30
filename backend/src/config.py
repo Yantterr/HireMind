@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     redis_host: str
     redis_port: int
     redis_password: SecretStr
+    redis_chat_time_live: int = 3600
+    redis_chat_time_notification: int = 3500
+    redis_token_time_live: int = 2_592_000
 
     backend_cors_origins: Optional[str] = None
 
@@ -35,6 +38,8 @@ class Settings(BaseSettings):
     email_from: str
     email_port: int
     email_server: str
+
+    system_roles: list[str] = ['anonym', 'user', 'admin']
 
     @property
     def email_config(self) -> ConnectionConfig:
@@ -68,6 +73,15 @@ class Settings(BaseSettings):
             'max_age': 2_592_000,
             'secure': not self.develop_mode,
             'samesite': 'none' if self.develop_mode else 'lax',
+        }
+
+    @property
+    def redis_settings(self) -> dict:
+        """Construct Redis connection settings."""
+        return {
+            'host': settings.redis_host,
+            'port': settings.redis_port,
+            'password': settings.redis_password.get_secret_value(),
         }
 
     model_config = SettingsConfigDict(env_file='.env')

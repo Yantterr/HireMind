@@ -1,62 +1,28 @@
-from re import search
 from typing import Optional
 
-from pydantic import field_validator
-
-from src.models.generally_models import Base, SystemRoleEnum
+from src.models.generally_models import Base, PasswordValidator
 
 
 class BaseUserModel(Base):
-    """Base user model with optional username."""
+    """Base model for user entities with optional username field."""
 
     username: Optional[str] = None
 
 
-class UserModel(BaseUserModel):
-    """User model with ID and role."""
-
-    id: int
-    email: Optional[str] = None
-    role: SystemRoleEnum
-    is_activated: bool
-
-
-class UserLoginModel(Base):
-    """User login model with required username and password."""
+class AuthLoginModel(PasswordValidator):
+    """Authentication model with email and password validation."""
 
     email: str
     password: str
 
-    @field_validator('password')
-    def validate_password(cls, value):
-        """Validate password."""
-        if len(value) < 12:
-            raise ValueError('Password must be at least 12 characters long')
-        if not search(r'\d', value):
-            raise ValueError('Password must contain at least one digit')
-        if not search(r'[A-Z]', value):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not search(r'[a-z]', value):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]', value):
-            raise ValueError('Password must contain at least one special character')
-        if ' ' in value:
-            raise ValueError('Password cannot contain spaces')
-        if value.lower() == value:
-            raise ValueError('Password must contain mixed case characters')
-        if value.isalnum():
-            raise ValueError('Password must contain at least one special character')
 
-        return value
-
-
-class UserCreateModel(UserLoginModel):
-    """User creation model with optional password and role."""
+class AuthCreateModel(AuthLoginModel):
+    """User registration model extending authentication with required username."""
 
     username: str
 
 
-class UserConfirmEmailModel(Base):
-    """User confirm email model."""
+class UserKeyModel(Base):
+    """Email verification model containing confirmation key."""
 
     key: int

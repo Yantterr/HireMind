@@ -15,6 +15,7 @@ class Logger:
         'password_not_correct': (401, 'Password not correct'),
         'undefined_error': (500, 'Undefined error'),
         'token_expired': (401, 'Token expired'),
+        'data_not_correct': (400, 'Data not correct'),
     }
 
     @staticmethod
