@@ -62,6 +62,15 @@ async def get_user_by_username(db: AsyncSession, username: str) -> UserSchema | 
     return user
 
 
+async def get_user_password(db: AsyncSession, user_id: int) -> UserSchema | None:
+    """Service for get user by id."""
+    request = select(UserSchema).where(UserSchema.id == user_id).options(load_only(UserSchema.password))
+    result = await db.execute(request)
+    user = result.scalars().first()
+
+    return user
+
+
 async def edit_user(
     db: AsyncSession,
     user_id: int,

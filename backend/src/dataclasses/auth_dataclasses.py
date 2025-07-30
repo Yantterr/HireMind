@@ -23,7 +23,7 @@ class AuthRegisterDataclass:
 
 
 @dataclass
-class AuthLoginDataclass:
+class AuthSessionDataclass:
     """Login dataclass."""
 
     token: str

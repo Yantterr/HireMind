@@ -1,7 +1,13 @@
 from enum import StrEnum
+from re import compile
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+PASSWORD_DIGIT_PATTERN = compile(r'\d')
+PASSWORD_UPPERCASE_PATTERN = compile(r'[A-Z]')
+PASSWORD_LOWERCASE_PATTERN = compile(r'[a-z]')
+PASSWORD_SPECIAL_PATTERN = compile(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]')
 
 
 class Base(BaseModel):
@@ -14,6 +20,31 @@ class Base(BaseModel):
     """
 
     model_config = {'from_attributes': True, 'use_enum_values': True, 'extra': 'forbid'}
+
+
+class PasswordValidator(Base):
+    """Password validator for Pydantic."""
+
+    @field_validator('password')
+    def validate_password(cls, value: str) -> str:
+        """Enforce password security policies (length, complexity, no spaces)."""
+        if len(value) < 12:
+            raise ValueError('Password must be at least 12 characters')
+        if ' ' in value:
+            raise ValueError('Password cannot contain spaces')
+
+        validations = (
+            (PASSWORD_DIGIT_PATTERN, 'at least one digit'),
+            (PASSWORD_UPPERCASE_PATTERN, 'at least one uppercase letter'),
+            (PASSWORD_LOWERCASE_PATTERN, 'at least one lowercase letter'),
+            (PASSWORD_SPECIAL_PATTERN, 'at least one special character'),
+        )
+
+        for pattern, requirement in validations:
+            if not pattern.search(value):
+                raise ValueError(f'Password must contain {requirement}')
+
+        return value
 
 
 class ResponseModel(Base):

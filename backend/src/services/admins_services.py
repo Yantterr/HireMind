@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only
 
 from src.models.generally_models import SystemRoleEnum
-from src.schemas import ChatSchema, UserSchema
+from src.schemas import UserSchema
 
 
 async def get_all_admins(db: AsyncSession, page: int, per_page: int) -> tuple[list[UserSchema], int, int, int, int]:

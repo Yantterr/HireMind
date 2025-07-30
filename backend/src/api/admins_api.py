@@ -7,8 +7,8 @@ import src.dependencies.generally_dependencies as generally_dependencies
 import src.services.admins_services as admins_services
 import src.services.users_services as users_services
 from src.engines.database_engine import SessionDep
-from src.models.auth_models import UserModel
 from src.models.generally_models import PaginatedResponseModel, PaginationParamsModel, SystemRoleEnum
+from src.models.users_models import UserModel
 from src.schemas import UserSchema
 
 admins_router = APIRouter(

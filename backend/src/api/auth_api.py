@@ -5,7 +5,6 @@ from fastapi_mail import MessageType
 
 import src.controllers.auth_controllers as auth_controllers
 import src.dependencies.auth_dependencies as auth_dependencies
-import src.services.users_services as users_service
 import src.utils.auth_utils as auth_utils
 import src.utils.generally_utils as generally_utils
 from src.config import settings
@@ -22,7 +21,7 @@ auth_router = APIRouter(
 )
 
 
-@auth_router.post('/', response_model=UserModel)
+@auth_router.post('/register', response_model=UserModel)
 async def create_user(
     request: Request,
     response: Response,
@@ -88,25 +87,3 @@ async def logout_user(
     response.delete_cookie(key='token')
 
     return ResponseModel(message=message)
-
-
-@auth_router.get('/key', response_model=ResponseModel)
-async def get_new_key(
-    request: Request,
-    redis: RedisDep,
-    db: SessionDep,
-    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('user'))],
-    background_tasks: BackgroundTasks,
-) -> ResponseModel:
-    """Get new key for email confirmation."""
-    auth_info = auth_utils.get_validated_auth_info(request)
-
-    new_key = await auth_controllers.email_new_key(user_agent=auth_info.user_agent, user_id=user.id, redis=redis)
-    user_orm = await users_service.get_user_by_id(db=db, user_id=user.id)
-
-    if not user_orm or not user_orm.email:
-        raise Logger.create_response_error(error_key='user_not_authenticated', is_cookie_remove=False)
-
-    background_tasks.add_task(generally_utils.send_email_message, user_orm.email, str(new_key), MessageType.plain)
-
-    return ResponseModel(message='New key was generated successfully.')
