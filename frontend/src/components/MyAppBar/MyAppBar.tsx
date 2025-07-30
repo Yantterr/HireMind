@@ -63,7 +63,6 @@ export default function MyAppBar() {
                 display: 'flex',
                 // или другой подходящий размер
                 height: '50px',
-
                 marginRight: '8px',
                 objectFit: 'contain',
                 width: '50px',
@@ -79,6 +78,7 @@ export default function MyAppBar() {
                 display: { md: 'flex', xs: 'flex' },
                 flexGrow: 1,
                 fontFamily: 'monospace',
+                // fontSize: { xs: 16 },
                 fontWeight: 700,
                 letterSpacing: '.3rem',
                 textDecoration: 'none',
