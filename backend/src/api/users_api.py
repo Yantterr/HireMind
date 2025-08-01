@@ -10,7 +10,7 @@ import src.services.users_services as users_services
 import src.utils.auth_utils as auth_utils
 import src.utils.generally_utils as generally_utils
 from src.config import settings
-from src.dataclasses.users_dataclasses import UserDataclass
+from src.dto.users_dto import UserDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
 from src.logger import Logger

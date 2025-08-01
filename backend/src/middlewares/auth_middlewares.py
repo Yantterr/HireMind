@@ -4,7 +4,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 import src.utils.auth_utils as auth_utils
 from src.config import settings
-from src.dataclasses.auth_dataclasses import UserDataclass
+from src.dto.auth_dto import UserDataclass
 from src.engines.database_engine import session_factory
 from src.engines.redis_engine import get_redis
 from src.models.generally_models import SystemRoleEnum

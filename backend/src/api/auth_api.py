@@ -8,12 +8,13 @@ import src.dependencies.auth_dependencies as auth_dependencies
 import src.utils.auth_utils as auth_utils
 import src.utils.generally_utils as generally_utils
 from src.config import settings
-from src.dataclasses.auth_dataclasses import UserDataclass
+from src.dto.auth_dto import UserDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
 from src.logger import Logger
-from src.models.auth_models import UserCreateModel, UserLoginModel, UserModel
+from src.models.auth_models import AuthCreateModel, AuthLoginModel
 from src.models.generally_models import ResponseModel
+from src.models.users_models import UserModel
 
 auth_router = APIRouter(
     prefix='/auth',
@@ -28,7 +29,7 @@ async def create_user(
     db: SessionDep,
     redis: RedisDep,
     background_tasks: BackgroundTasks,
-    user_create_data: UserCreateModel,
+    user_create_data: AuthCreateModel,
 ) -> UserDataclass:
     """Register a new user and send a confirmation code."""
     token = request.cookies.get('token')
@@ -57,7 +58,7 @@ async def create_user(
 
 @auth_router.post('/login', response_model=UserModel)
 async def login_user(
-    request: Request, response: Response, redis: RedisDep, db: SessionDep, login_data: UserLoginModel
+    request: Request, response: Response, redis: RedisDep, db: SessionDep, login_data: AuthLoginModel
 ) -> UserDataclass:
     """Login user."""
     user_agent = request.headers.get('user-agent')
