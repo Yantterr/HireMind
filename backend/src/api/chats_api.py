@@ -93,6 +93,7 @@ async def message_create(
     )
 
     chat.queue_position = queue_position
+    await chats_utils.chat_save(chat=chat, redis=redis)
     return chat
 
 
