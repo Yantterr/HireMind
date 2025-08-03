@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.dataclasses.generally_dataclasses import BaseDataclass
+from src.dto.generally_dto import BaseDataclass
 from src.models.generally_models import SystemRoleEnum
 
 

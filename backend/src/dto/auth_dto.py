@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.dataclasses.users_dataclasses import UserDataclass
+from src.dto.users_dto import UserDataclass
 
 
 @dataclass

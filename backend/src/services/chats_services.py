@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only, selectinload
 
-from src.dataclasses.chats_dataclasses import EventDataclass
+from src.dto.chats_dto import EventDataclass
 from src.logger import Logger
 from src.models.generally_models import NNRoleEnum
 from src.schemas import ChatSchema, EventSchema, MessageSchema

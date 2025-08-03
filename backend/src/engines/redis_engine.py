@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 import src.services.chats_services as gpt_service
 import src.utils.redis_utils as redis_utils
 from src.config import settings
-from src.dataclasses.chats_dataclasses import ChatDataclass
+from src.dto.chats_dto import ChatDataclass
 from src.engines.database_engine import session_factory
 
 redis_client: Redis | None = None

@@ -8,7 +8,7 @@ import src.services.chats_services as gpt_service
 import src.utils.chats_utils as chats_utils
 import src.utils.redis_utils as redis_utils
 from src.config import NNConfig
-from src.dataclasses.chats_dataclasses import ChatDataclass, EventDataclass, MessageDataclass
+from src.dto.chats_dto import ChatDataclass, EventDataclass, MessageDataclass
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
 from src.models.chats_models import ChatCreateModel, EventCreateModel, MessageCreateModel

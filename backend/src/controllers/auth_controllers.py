@@ -6,16 +6,16 @@ import src.services.auth_services as auth_service
 import src.services.users_services as users_service
 import src.utils.auth_utils as auth_utils
 from src.config import settings
-from src.dataclasses.auth_dataclasses import AuthLoginDataclass, AuthRegisterDataclass
-from src.dataclasses.users_dataclasses import UserDataclass
+from src.dto.auth_dto import AuthRegisterDataclass, AuthSessionDataclass
+from src.dto.users_dto import UserDataclass
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
-from src.models.auth_models import UserCreateModel, UserLoginModel
+from src.models.auth_models import AuthCreateModel, AuthLoginModel
 from src.models.generally_models import SystemRoleEnum
 
 
 async def create_user(
-    user_create_data: UserCreateModel,
+    user_create_data: AuthCreateModel,
     token: Optional[str],
     user_agent: str,
     db: AsyncSession,
@@ -68,8 +68,8 @@ async def create_user(
 
 
 async def login_user(
-    login_data: UserLoginModel, user_agent: str, db: AsyncSession, redis: AsyncRedis
-) -> AuthLoginDataclass:
+    login_data: AuthLoginModel, user_agent: str, db: AsyncSession, redis: AsyncRedis
+) -> AuthSessionDataclass:
     """Login user."""
     user_orm = await users_service.get_user_by_email(db=db, email=login_data.email)
     if not user_orm:
@@ -87,7 +87,7 @@ async def login_user(
     token = auth_utils.token_generate(user=user_dataclass)
     await redis.set(name=f'{user_dataclass.id}/agent:{user_agent}', value=token, expire=settings.redis_token_time_live)
 
-    return AuthLoginDataclass(token=token, user=user_dataclass)
+    return AuthSessionDataclass(token=token, user=user_dataclass)
 
 
 async def logout_user(user_id: int, user_agent: str, redis: AsyncRedis) -> str:
