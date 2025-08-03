@@ -3,7 +3,7 @@ from dataclasses import asdict
 import httpx
 
 from src.config import settings
-from src.dataclasses.chats_dataclasses import MessageDataclass
+from src.dto.chats_dto import MessageDataclass
 from src.models.chats_models import NNResponseModel
 from src.models.generally_models import NNRoleEnum
 
@@ -15,9 +15,17 @@ async def ollama_request(messages: list[MessageDataclass]) -> NNResponseModel:
     ]
     ollama_url = settings.ollama_url
 
-    payload = {'model': settings.ollama_model, 'messages': ollama_context, 'stream': False, 'think': False}
+    payload = {
+        'model': settings.ollama_model,
+        'options': {
+            'num_ctx': 65536,
+        },
+        'messages': ollama_context,
+        'stream': False,
+        'think': False,
+    }
 
-    async with httpx.AsyncClient(timeout=99999999999999999999999999999) as client:
+    async with httpx.AsyncClient(timeout=3600) as client:
         response = await client.post(ollama_url, json=payload)
         data = response.json()
 

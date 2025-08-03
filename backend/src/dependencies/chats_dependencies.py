@@ -4,7 +4,7 @@ from fastapi import Request
 
 import src.services.chats_services as gpt_service
 import src.utils.chats_utils as chats_utils
-from src.dataclasses.chats_dataclasses import ChatDataclass
+from src.dto.chats_dto import ChatDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
 from src.logger import Logger

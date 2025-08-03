@@ -54,6 +54,7 @@ app.include_router(admins_router)
 
 
 if __name__ == '__main__':
+    """Yofasdjflaksjdf"""
     import uvicorn
 
     uvicorn.run(app, host=settings.host, port=settings.port)

@@ -1,7 +1,7 @@
 from fastapi import Request
 
 from src.config import settings
-from src.dataclasses.users_dataclasses import UserDataclass
+from src.dto.users_dto import UserDataclass
 from src.logger import Logger
 
 

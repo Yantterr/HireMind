@@ -4,8 +4,8 @@ import src.services.auth_services as auth_services
 import src.services.users_services as users_service
 import src.utils.auth_utils as auth_utils
 from src.config import settings
-from src.dataclasses.auth_dataclasses import AuthSessionDataclass
-from src.dataclasses.users_dataclasses import UserDataclass
+from src.dto.auth_dto import AuthSessionDataclass
+from src.dto.users_dto import UserDataclass
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
 from src.schemas import UserSchema

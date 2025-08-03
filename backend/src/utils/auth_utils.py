@@ -9,7 +9,7 @@ from fastapi import Request
 from jwt import ExpiredSignatureError, decode, encode
 
 from src.config import settings
-from src.dataclasses.auth_dataclasses import AuthInfoDataclass, UserDataclass
+from src.dto.auth_dto import AuthInfoDataclass, UserDataclass
 from src.engines.redis_engine import AsyncRedis
 
 

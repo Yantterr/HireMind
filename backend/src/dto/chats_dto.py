@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.dataclasses.generally_dataclasses import BaseDataclass
+from src.dto.generally_dto import BaseDataclass
 from src.models.generally_models import NNRoleEnum
 
 
