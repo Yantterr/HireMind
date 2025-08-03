@@ -35,8 +35,9 @@ class ChatModel(Base):
     is_archived: bool
     messages: list[MessageModel]
     events: list[EventModel]
-    count_request_tokens: int
-    count_response_tokens: int
+    total_count_request_tokens: int
+    total_count_response_tokens: int
+    current_count_request_tokens: int
     current_event_chance: float
     created_at: datetime
     updated_at: datetime

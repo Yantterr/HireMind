@@ -58,10 +58,13 @@ async def chat_create(
         '6. Реплики должны быть краткими (1-2 предложения максимум)\n\n'
         'ТЕХНИКИ ЕСТЕСТВЕННОГО ПОВЕДЕНИЯ:\n'
         '- После ответа кандидата делай микропаузу (0.5-2 сек)\n'
-        "- Используй подтверждающие реплики ('Понял', 'Интересно')\n"
+        "- Используй подтверждающие реплики ('Понял', 'Интересно', 'Ясно')\n"
         '- Задавай уточняющие вопросы по ответам\n'
-        "- Проявляй эмоциональные реакции ('О, необычный подход!')\n"
-        "- Допускай естественные паузы обдумывания ('Дай-ка подумать...')\n\n"
+        "- Проявляй эмоциональные реакции ('О, необычный подход!', 'Вот это интересно!')\n"
+        "- Допускай естественные паузы обдумывания (используй фразы типа '{random.choice(SPONTANEITY_CONFIG['thinking_phrases'])}')\n"
+        "- В 10% случаев добавляй личные комментарии: '{random.choice(SPONTANEITY_CONFIG['personal_comments'])}'\n"
+        "- В 15% вопросов используй спонтанные уточнения: '{random.choice(SPONTANEITY_CONFIG['follow_up_questions'])}'\n"
+        "- В 5% случаев допускай вежливые прерывания: '{random.choice(SPONTANEITY_CONFIG['natural_interruptions'])}'\n\n"
         'СТРУКТУРА СОБЕСЕДОВАНИЯ:\n'
         '1. Приветствие (только в первом сообщении)\n'
         '2. Легкий разогревочный вопрос\n'
@@ -74,7 +77,7 @@ async def chat_create(
         f'• Дружелюбие: {NNConfig["friendliness"][create_chat_data.friendliness]}\n'
         f'• Жёсткость: {NNConfig["rigidity"][create_chat_data.rigidity]}\n'
         f'• Детализация: {NNConfig["detail_orientation"][create_chat_data.detail_orientation]}\n'
-        f'• Темп: {NNConfig["pacing"][create_chat_data.pacing]}\n\n'
+        f'• Темп: {NNConfig["pacing"][create_chat_data.pacing]}\n'
         f'КОНТЕКСТ ВАКАНСИИ:\n{initial_context}\n\n'
         'ДОПОЛНИТЕЛЬНЫЕ СОБЫТИЯ:\n' + '\n'.join(f'- {event.content}' for event in events) + '\n\n'
         'ЗАПРЕЩЕНО:\n'
@@ -101,6 +104,9 @@ async def chat_create(
 
     nn_response = await ollama_engine.ollama_request(messages=chat_dataclass.messages)
 
+    chat_dataclass.total_count_request_tokens += nn_response.count_request_tokens
+    chat_dataclass.total_count_response_tokens += nn_response.count_response_tokens
+    chat_dataclass.current_count_request_tokens = nn_response.count_request_tokens + nn_response.count_response_tokens
     chat_dataclass.messages.append(
         MessageDataclass(
             id=None,
@@ -111,7 +117,7 @@ async def chat_create(
         )
     )
 
-    await chats_utils.chat_save(chat=ChatDataclass.from_orm(chat), redis=redis)
+    await chats_utils.chat_save(chat=chat_dataclass, redis=redis)
 
     return chat_dataclass
 
@@ -168,8 +174,9 @@ async def message_send(
     await chats_utils.queue_remove_task(redis=redis)
 
     chat.queue_position = 0
-    chat.count_request_tokens += nn_response.count_request_tokens
-    chat.count_response_tokens += nn_response.count_response_tokens
+    chat.total_count_request_tokens += nn_response.count_request_tokens
+    chat.total_count_response_tokens += nn_response.count_response_tokens
+    chat.current_count_request_tokens = nn_response.count_request_tokens + nn_response.count_response_tokens
     chat.messages.append(
         MessageDataclass(
             id=None,

@@ -30,7 +30,7 @@ async def get_current_user(
     return user
 
 
-@users_router.get('/email-key', response_model=ResponseModel)
+@users_router.patch('/key', response_model=ResponseModel)
 async def get_new_key(
     request: Request,
     redis: RedisDep,
@@ -125,7 +125,7 @@ async def change_username(
     return result.user
 
 
-@users_router.post('/forgot-password', response_model=ResponseModel)
+@users_router.patch('/forgot-password', response_model=ResponseModel)
 async def forgot_password(
     request: Request,
     user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('user'))],

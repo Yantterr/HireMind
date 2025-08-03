@@ -65,8 +65,9 @@ class ChatSchema(SqlalchemyBase):
         'MessageSchema', back_populates='chat', lazy='noload', cascade='all'
     )
 
-    count_request_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
-    count_response_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
+    total_count_request_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
+    total_count_response_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
+    current_count_request_tokens: Mapped[int] = mapped_column(default=0, nullable=False)
 
     current_event_chance: Mapped[float] = mapped_column(
         default=1.5,

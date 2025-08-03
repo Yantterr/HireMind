@@ -1,7 +1,7 @@
 from typing import Optional
 
 from src.models.auth_models import BaseUserModel
-from src.models.generally_models import Base, PasswordValidator, SystemRoleEnum
+from src.models.generally_models import Base, PasswordField, SystemRoleEnum
 
 
 class UserModel(BaseUserModel):
@@ -13,14 +13,14 @@ class UserModel(BaseUserModel):
     is_activated: bool
 
 
-class UserEditPasswordModel(PasswordValidator):
+class UserEditPasswordModel(PasswordField):
     """Change password model containing new password and confirmation key."""
 
     password_old: str
     password: str
 
 
-class UserResetPasswordModel(PasswordValidator):
+class UserResetPasswordModel(PasswordField):
     """Reset password model containing new password and confirmation key."""
 
     key: int
