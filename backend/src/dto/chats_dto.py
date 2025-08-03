@@ -36,8 +36,9 @@ class ChatDataclass(BaseDataclass):
     progression_type: int
     events: list[EventDataclass]
     is_archived: bool
-    count_request_tokens: int
-    count_response_tokens: int
+    total_count_request_tokens: int
+    total_count_response_tokens: int
+    current_count_request_tokens: int
     created_at: str
     updated_at: str
     queue_position: Optional[int] = 0

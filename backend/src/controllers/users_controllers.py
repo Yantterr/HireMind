@@ -57,7 +57,7 @@ async def confirm_email(
 async def email_new_key(user_id: int, user_agent: str, redis: AsyncRedis) -> int:
     """Generate new key for email confirmation."""
     if await redis.get(f'{user_id}/key/{user_agent}'):
-        raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
+        await redis.delete(f'{user_id}/key/{user_agent}')
 
     new_key = auth_utils.email_key_generate()
     await redis.set(name=f'{user_id}/key/{user_agent}', value=str(new_key), expire=900)

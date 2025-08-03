@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e761e4f49d5e
+Revision ID: 25af29908272
 Revises: 
-Create Date: 2025-07-22 15:54:38.744087
+Create Date: 2025-08-01 14:41:14.935481
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'e761e4f49d5e'
+revision: str = '25af29908272'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -44,8 +44,9 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('title', sa.String(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('count_request_tokens', sa.Integer(), nullable=False),
-    sa.Column('count_response_tokens', sa.Integer(), nullable=False),
+    sa.Column('total_count_request_tokens', sa.Integer(), nullable=False),
+    sa.Column('total_count_response_tokens', sa.Integer(), nullable=False),
+    sa.Column('current_count_request_tokens', sa.Integer(), nullable=False),
     sa.Column('current_event_chance', sa.Float(), server_default='1.5', nullable=False),
     sa.Column('progression_type', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),

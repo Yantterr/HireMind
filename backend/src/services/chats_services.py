@@ -84,8 +84,9 @@ async def chat_create(
 async def chat_edit(
     db: AsyncSession,
     chat_id: int,
-    count_request_tokens: Optional[int] = None,
-    count_response_tokens: Optional[int] = None,
+    total_count_request_tokens: Optional[int] = None,
+    total_count_response_tokens: Optional[int] = None,
+    current_count_request_tokens: Optional[int] = None,
     updated_at: Optional[datetime] = None,
     current_event_chance: Optional[float] = None,
     is_archived: Optional[bool] = None,
@@ -108,10 +109,12 @@ async def chat_edit(
         chat.current_event_chance = current_event_chance
     if updated_at:
         chat.updated_at = updated_at
-    if count_request_tokens:
-        chat.count_request_tokens = count_request_tokens
-    if count_response_tokens:
-        chat.count_response_tokens = count_response_tokens
+    if total_count_request_tokens is not None:
+        chat.total_count_request_tokens = total_count_request_tokens
+    if total_count_response_tokens is not None:
+        chat.total_count_response_tokens = total_count_response_tokens
+    if current_count_request_tokens is not None:
+        chat.current_count_request_tokens = current_count_request_tokens
     if title:
         chat.title = title
     if is_archived is not None:

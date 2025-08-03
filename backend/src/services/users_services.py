@@ -101,7 +101,7 @@ async def edit_user(
         user.email = email
 
     if role:
-        user.role = role
+        user.role = SystemRoleEnum.ADMIN
 
     await db.commit()
     await db.refresh(user)

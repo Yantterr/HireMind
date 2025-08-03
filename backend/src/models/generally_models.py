@@ -22,8 +22,10 @@ class Base(BaseModel):
     model_config = {'from_attributes': True, 'use_enum_values': True, 'extra': 'forbid'}
 
 
-class PasswordValidator(Base):
+class PasswordField(Base):
     """Password validator for Pydantic."""
+
+    password: str
 
     @field_validator('password')
     def validate_password(cls, value: str) -> str:

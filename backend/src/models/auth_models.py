@@ -1,6 +1,6 @@
 from typing import Optional
 
-from src.models.generally_models import Base, PasswordValidator
+from src.models.generally_models import Base, PasswordField
 
 
 class BaseUserModel(Base):
@@ -9,7 +9,7 @@ class BaseUserModel(Base):
     username: Optional[str] = None
 
 
-class AuthLoginModel(PasswordValidator):
+class AuthLoginModel(PasswordField):
     """Authentication model with email and password validation."""
 
     email: str
