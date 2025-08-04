@@ -76,7 +76,7 @@ async def logout_user(
     response: Response,
     request: Request,
     redis: RedisDep,
-    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('user'))],
+    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('anonym'))],
 ) -> ResponseModel:
     """Logout user and delete token from cookie."""
     auth_info = auth_utils.get_validated_auth_info(request)

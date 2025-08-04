@@ -5,7 +5,6 @@ from fastapi_mail import MessageType
 
 import src.controllers.users_controllers as users_controllers
 import src.dependencies.auth_dependencies as auth_dependencies
-import src.dependencies.generally_dependencies as generally_dependencies
 import src.services.users_services as users_services
 import src.utils.auth_utils as auth_utils
 import src.utils.generally_utils as generally_utils
@@ -15,9 +14,8 @@ from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
 from src.logger import Logger
 from src.models.auth_models import UserKeyModel
-from src.models.generally_models import PaginatedResponseModel, PaginationParamsModel, ResponseModel
+from src.models.generally_models import ResponseModel
 from src.models.users_models import UserEditEmailModel, UserEditNameModel, UserModel, UserResetPasswordModel
-from src.schemas import UserSchema
 
 users_router = APIRouter(prefix='/users', tags=['users'])
 
@@ -30,7 +28,7 @@ async def get_current_user(
     return user
 
 
-@users_router.patch('/key', response_model=ResponseModel)
+@users_router.post('/key', response_model=ResponseModel)
 async def get_new_key(
     request: Request,
     redis: RedisDep,
@@ -173,42 +171,3 @@ async def edit_password(
     result = await users_controllers.edit_password(db=db, user_id=user.id, new_password=edit_password_data.password)
 
     return ResponseModel(message=result)
-
-
-@users_router.get('/', response_model=PaginatedResponseModel[UserModel])
-async def get_all_users(
-    pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
-    db: SessionDep,
-    request: Request,
-) -> PaginatedResponseModel[UserModel]:
-    """Get list of users."""
-    await auth_dependencies.require_permission('admin')(request=request)
-    users, page, per_page, total_items, total_pages = await users_services.get_users(
-        db=db, page=pagination_params.page, per_page=pagination_params.per_page
-    )
-
-    return PaginatedResponseModel(
-        items=[UserModel.model_validate(user) for user in users],
-        page=page,
-        per_page=per_page,
-        total_items=total_items,
-        total_pages=total_pages,
-    )
-
-
-@users_router.get('/{user_id}', response_model=UserModel)
-async def get_user(user_id: int, db: SessionDep, request: Request) -> UserSchema:
-    """Get user by id."""
-    await auth_dependencies.require_permission('admin')(request=request)
-    user = await users_controllers.get_user(db=db, user_id=user_id)
-
-    return user
-
-
-@users_router.delete('/{user_id}', response_model=UserModel)
-async def delete_user(user_id: int, db: SessionDep, request: Request) -> UserSchema:
-    """Delete user by id."""
-    await auth_dependencies.require_permission('admin')(request=request)
-    user = await users_controllers.delete_user(db=db, user_id=user_id)
-
-    return user

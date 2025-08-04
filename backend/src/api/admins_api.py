@@ -2,14 +2,17 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 
+import src.controllers.chats_controllers as chats_controllers
+import src.controllers.users_controllers as users_controllers
 import src.dependencies.auth_dependencies as auth_dependencies
 import src.dependencies.generally_dependencies as generally_dependencies
 import src.services.admins_services as admins_services
 import src.services.users_services as users_services
 from src.engines.database_engine import SessionDep
+from src.models.chats_models import EventCreateModel, EventModel
 from src.models.generally_models import PaginatedResponseModel, PaginationParamsModel, SystemRoleEnum
 from src.models.users_models import UserModel
-from src.schemas import UserSchema
+from src.schemas import EventSchema, UserSchema
 
 admins_router = APIRouter(
     prefix='/admins',
@@ -54,3 +57,76 @@ async def create_admin(request: Request, user_id: int, db: SessionDep) -> UserSc
     admin = await users_services.edit_user(db=db, user_id=user_id, role=SystemRoleEnum.ADMIN)
 
     return admin
+
+
+@admins_router.get('/events', response_model=PaginatedResponseModel[EventModel])
+async def event_get_all(
+    request: Request,
+    pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
+    db: SessionDep,
+) -> PaginatedResponseModel[EventModel]:
+    """Get all GPT events."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    events, page, per_page, total_items, total_pages = await chats_controllers.event_get_all(
+        db=db, page=pagination_params.page, per_page=pagination_params.per_page
+    )
+
+    return PaginatedResponseModel(
+        items=[EventModel.model_validate(event) for event in events],
+        page=page,
+        per_page=per_page,
+        total_items=total_items,
+        total_pages=total_pages,
+    )
+
+
+@admins_router.post('/events', response_model=EventModel)
+async def event_create(
+    request: Request,
+    event_create_data: EventCreateModel,
+    db: SessionDep,
+) -> EventSchema:
+    """Create a new GPT event."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    event = await chats_controllers.event_create(db=db, event_create_data=event_create_data)
+
+    return event
+
+
+@admins_router.get('/users', response_model=PaginatedResponseModel[UserModel])
+async def get_all_users(
+    request: Request,
+    pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
+    db: SessionDep,
+) -> PaginatedResponseModel[UserModel]:
+    """Get list of users."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    users, page, per_page, total_items, total_pages = await users_services.get_users(
+        db=db, page=pagination_params.page, per_page=pagination_params.per_page
+    )
+
+    return PaginatedResponseModel(
+        items=[UserModel.model_validate(user) for user in users],
+        page=page,
+        per_page=per_page,
+        total_items=total_items,
+        total_pages=total_pages,
+    )
+
+
+@admins_router.get('/users/{user_id}', response_model=UserModel)
+async def get_user(user_id: int, db: SessionDep, request: Request) -> UserSchema:
+    """Get user by id."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    user = await users_controllers.get_user(db=db, user_id=user_id)
+
+    return user
+
+
+@admins_router.delete('/users/{user_id}', response_model=UserModel)
+async def delete_user(user_id: int, db: SessionDep, request: Request) -> UserSchema:
+    """Delete user by id."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    user = await users_controllers.delete_user(db=db, user_id=user_id)
+
+    return user

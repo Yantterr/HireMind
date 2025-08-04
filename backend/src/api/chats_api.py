@@ -1,25 +1,23 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 import src.controllers.chats_controllers as chats_controllers
+import src.dependencies.auth_dependencies as auth_dependencies
 import src.dependencies.chats_dependencies as chats_dependencies
 import src.dependencies.generally_dependencies as generally_dependencies
 import src.utils.chats_utils as chats_utils
 from src.dto.chats_dto import ChatDataclass
+from src.dto.users_dto import UserDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
-from src.logger import Logger
 from src.models.chats_models import (
     ChatCreateModel,
     ChatModel,
     ChatsModel,
-    EventCreateModel,
-    EventModel,
     MessageCreateModel,
 )
 from src.models.generally_models import PaginatedResponseModel, PaginationParamsModel
-from src.schemas import EventSchema
 
 chats_router = APIRouter(
     prefix='/chats',
@@ -29,12 +27,11 @@ chats_router = APIRouter(
 
 @chats_router.get('/', response_model=PaginatedResponseModel[ChatsModel])
 async def chats_get_all(
-    request: Request,
+    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('anonym'))],
     pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
     db: SessionDep,
 ) -> PaginatedResponseModel[ChatsModel]:
     """Get all GPT chats."""
-    user = request.state.user
     chats, page, per_page, total_items, total_pages = await chats_controllers.chats_get_all(
         user_id=user.id, page=pagination_params.page, per_page=pagination_params.per_page, role=user.role, db=db
     )
@@ -50,13 +47,12 @@ async def chats_get_all(
 
 @chats_router.post('/', response_model=ChatModel)
 async def chat_create(
-    request: Request,
+    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('anonym'))],
     db: SessionDep,
     redis: RedisDep,
     create_chat_data: ChatCreateModel,
 ) -> ChatDataclass:
     """Create a new GPT chat."""
-    user = request.state.user
     chat = await chats_controllers.chat_create(
         db=db, redis=redis, create_chat_data=create_chat_data, user_id=user.id, user_role=user.role
     )
@@ -66,13 +62,12 @@ async def chat_create(
 
 @chats_router.delete('/{chat_id}', response_model=ChatModel)
 async def chat_delete(
-    request: Request,
+    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('anonym'))],
     chat_id: int,
     db: SessionDep,
     redis: RedisDep,
 ) -> ChatDataclass:
     """Delete GPT chat by ID (soft delete)."""
-    user = request.state.user
     chat = await chats_controllers.chat_delete(user_id=user.id, redis=redis, chat_id=chat_id, db=db)
 
     return chat
@@ -95,41 +90,6 @@ async def message_create(
     chat.queue_position = queue_position
     await chats_utils.chat_save(chat=chat, redis=redis)
     return chat
-
-
-@chats_router.post('/events', response_model=EventModel)
-async def event_create(
-    request: Request,
-    event_create_data: EventCreateModel,
-    db: SessionDep,
-) -> EventSchema:
-    """Create a new GPT event."""
-    user = request.state.user
-    if user.role != 'admin':
-        raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
-
-    event = await chats_controllers.event_create(db=db, event_create_data=event_create_data)
-
-    return event
-
-
-@chats_router.get('/events', response_model=PaginatedResponseModel[EventModel])
-async def event_get_all(
-    pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
-    db: SessionDep,
-) -> PaginatedResponseModel[EventModel]:
-    """Get all GPT events."""
-    events, page, per_page, total_items, total_pages = await chats_controllers.event_get_all(
-        db=db, page=pagination_params.page, per_page=pagination_params.per_page
-    )
-
-    return PaginatedResponseModel(
-        items=[EventModel.model_validate(event) for event in events],
-        page=page,
-        per_page=per_page,
-        total_items=total_items,
-        total_pages=total_pages,
-    )
 
 
 @chats_router.get('/{chat_id}', response_model=ChatModel)
