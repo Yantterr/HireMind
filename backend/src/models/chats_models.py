@@ -3,9 +3,8 @@ from typing import Optional
 
 from pydantic import Field
 
-from src.models.generally_models import Base, NNRoleEnum
+from src.models.generally_models import Base, NNRoleEnum, PaginatedResponseModel
 
-# Common field configurations for rating scales
 RATING_FIELD = Field(ge=0, le=4, description='Rating scale from 0 to 4 inclusive')
 LANGUAGE_FIELD = Field(ge=0, le=9, description='Programming language identifier (0-9 inclusive)')
 PROGRESSION_FIELD = Field(ge=0, le=1, description='0: arithmetic progression, 1: geometric progression')
@@ -27,31 +26,47 @@ class EventModel(Base):
     content: str
 
 
-class ChatModel(Base):
+class EventPaginatedModel(PaginatedResponseModel[EventModel]):
+    """Model for paginated list of events."""
+
+    pass
+
+
+class ChatUserModel(Base):
     """Complete chat session with metadata and content."""
 
     id: int
     title: str
-    is_archived: bool
     messages: list[MessageModel]
     events: list[EventModel]
-    total_count_request_tokens: int
-    total_count_response_tokens: int
-    current_count_request_tokens: int
-    current_event_chance: float
     created_at: datetime
     updated_at: datetime
     queue_position: int
 
 
-class ChatsModel(Base):
+class ChatsUserModel(Base):
     """Minimal chat representation for listing purposes."""
 
     id: int
-    user_id: int
     title: str
-    is_archived: bool
     updated_at: datetime
+
+
+class ChatAdminModel(ChatUserModel):
+    """Complete chat session with metadata and content."""
+
+    current_event_chance: float
+    progression_type: int
+    is_archived: bool
+    total_count_request_tokens: int
+    total_count_response_tokens: int
+    current_count_request_tokens: int
+
+
+class ChatsAdminModel(PaginatedResponseModel[ChatAdminModel]):
+    """Complete chat session with metadata and content."""
+
+    pass
 
 
 class ChatCreateModel(Base):

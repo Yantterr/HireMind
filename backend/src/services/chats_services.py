@@ -12,8 +12,8 @@ from src.schemas import ChatSchema, EventSchema, MessageSchema
 
 
 async def chat_get_all(
-    db: AsyncSession, per_page: int, page: int, user_id: Optional[int]
-) -> tuple[list[ChatSchema], int, int, int, int]:
+    db: AsyncSession, per_page: Optional[int] = None, page: Optional[int] = None, user_id: Optional[int] = None
+) -> tuple[list[ChatSchema], int, int]:
     """Get all non-archived chats from database."""
     base_query = select(ChatSchema).where(~ChatSchema.is_archived)
     if user_id is not None:
@@ -23,8 +23,12 @@ async def chat_get_all(
     total_result = await db.execute(count_query)
     total_items = total_result.scalar_one()
 
-    total_pages = (total_items + per_page - 1) // per_page
-    offset = (page - 1) * per_page
+    if per_page is not None and page is not None:
+        total_pages = (total_items + per_page - 1) // per_page
+        offset = (page - 1) * per_page
+    else:
+        total_pages = 1
+        offset = 0
 
     data_query = (
         base_query.offset(offset)
@@ -45,7 +49,7 @@ async def chat_get_all(
     result = await db.execute(data_query)
     chats = result.scalars().all()
 
-    return list(chats), page, per_page, total_items, total_pages
+    return list(chats), total_items, total_pages
 
 
 async def chat_get(db: AsyncSession, chat_id: int, user_id: int) -> Optional[ChatSchema]:
@@ -171,7 +175,7 @@ async def event_create(db: AsyncSession, content: str) -> EventSchema:
     return new_event
 
 
-async def event_get_all(db: AsyncSession, page: int, per_page: int) -> tuple[list[EventSchema], int, int, int, int]:
+async def event_get_all(db: AsyncSession, page: int, per_page: int) -> tuple[list[EventSchema], int, int]:
     """Get all events from database."""
     base_query = select(EventSchema)
 
@@ -196,7 +200,7 @@ async def event_get_all(db: AsyncSession, page: int, per_page: int) -> tuple[lis
     result = await db.execute(data_query)
     events = result.scalars().all()
 
-    return list(events), page, per_page, total_items, total_pages
+    return list(events), total_items, total_pages
 
 
 async def event_get_random(db: AsyncSession, count: int) -> list[EventSchema]:

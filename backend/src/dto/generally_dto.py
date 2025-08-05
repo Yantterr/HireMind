@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields
 from datetime import datetime
 from enum import Enum
-from typing import Any, Union, get_args, get_origin
+from typing import Any, Generic, TypeVar, Union, get_args, get_origin
 
 
 @dataclass
@@ -65,3 +65,17 @@ class BaseDataclass:
                 return value
 
         return value
+
+
+T = TypeVar('T')
+
+
+@dataclass
+class PaginatedDataclass(BaseDataclass, Generic[T]):
+    """Dataclass with pagination metadata."""
+
+    items: list[T]
+    page: int
+    per_page: int
+    total_items: int
+    total_pages: int

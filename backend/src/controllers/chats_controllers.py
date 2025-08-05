@@ -8,7 +8,13 @@ import src.services.chats_services as gpt_service
 import src.utils.chats_utils as chats_utils
 import src.utils.redis_utils as redis_utils
 from src.config import NNConfig
-from src.dto.chats_dto import ChatDataclass, EventDataclass, MessageDataclass
+from src.dto.chats_dto import (
+    ChatDataclass,
+    ChatsAdminPaginatedDataclass,
+    EventDataclass,
+    EventsPaginatedDataclass,
+    MessageDataclass,
+)
 from src.engines.redis_engine import AsyncRedis
 from src.logger import Logger
 from src.models.chats_models import ChatCreateModel, EventCreateModel, MessageCreateModel
@@ -16,13 +22,23 @@ from src.models.generally_models import NNRoleEnum, SystemRoleEnum
 from src.schemas import ChatSchema, EventSchema
 
 
-async def chats_get_all(
-    db: AsyncSession, per_page: int, page: int, role: SystemRoleEnum, user_id: int
-) -> tuple[list[ChatSchema], int, int, int, int]:
+async def chats_user_get_all(db: AsyncSession, role: SystemRoleEnum, user_id: int) -> list[ChatSchema]:
+    """Get all GPT chats for the authorized user."""
+    chats, _, _ = await gpt_service.chat_get_all(db=db, user_id=user_id)
+    return chats
+
+
+async def chats_admin_get_all(
+    db: AsyncSession, user_id: int, role: SystemRoleEnum, page: int, per_page: int
+) -> ChatsAdminPaginatedDataclass:
     """Get all GPT chats for the authorized user."""
     filter_user_id = None if role == SystemRoleEnum.ADMIN else user_id
-
-    return await gpt_service.chat_get_all(db=db, user_id=filter_user_id, per_page=per_page, page=page)
+    chats, total_items, total_pages = await gpt_service.chat_get_all(
+        db=db, user_id=filter_user_id, page=page, per_page=per_page
+    )
+    return ChatsAdminPaginatedDataclass.from_dict(
+        {'items': chats, 'page': page, 'per_page': per_page, 'total_items': total_items, 'total_pages': total_pages}
+    )
 
 
 async def chat_create(
@@ -200,6 +216,10 @@ async def event_create(event_create_data: EventCreateModel, db: AsyncSession) ->
     return new_event
 
 
-async def event_get_all(db: AsyncSession, page: int, per_page: int) -> tuple[list[EventSchema], int, int, int, int]:
+async def event_get_all(db: AsyncSession, page: int, per_page: int) -> EventsPaginatedDataclass:
     """Get all events."""
-    return await gpt_service.event_get_all(db=db, page=page, per_page=per_page)
+    events, total_items, total_pages = await gpt_service.event_get_all(db=db, page=page, per_page=per_page)
+
+    return EventsPaginatedDataclass.from_dict(
+        {'items': events, 'page': page, 'per_page': per_page, 'total_items': total_items, 'total_pages': total_pages}
+    )

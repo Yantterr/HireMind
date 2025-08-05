@@ -8,8 +8,10 @@ import src.dependencies.auth_dependencies as auth_dependencies
 import src.dependencies.generally_dependencies as generally_dependencies
 import src.services.admins_services as admins_services
 import src.services.users_services as users_services
+from src.dto.chats_dto import ChatsAdminPaginatedDataclass, EventsPaginatedDataclass
+from src.dto.users_dto import UserDataclass
 from src.engines.database_engine import SessionDep
-from src.models.chats_models import EventCreateModel, EventModel
+from src.models.chats_models import ChatsAdminModel, EventCreateModel, EventModel, EventPaginatedModel
 from src.models.generally_models import PaginatedResponseModel, PaginationParamsModel, SystemRoleEnum
 from src.models.users_models import UserModel
 from src.schemas import EventSchema, UserSchema
@@ -20,64 +22,33 @@ admins_router = APIRouter(
 )
 
 
-@admins_router.get('/', response_model=PaginatedResponseModel[UserModel])
-async def get_all_admins(
-    request: Request,
+@admins_router.get('/chats', response_model=ChatsAdminModel)
+async def chats_get_all(
     pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
+    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('admin'))],
     db: SessionDep,
-) -> PaginatedResponseModel[UserModel]:
-    """Get list of admins."""
-    await auth_dependencies.require_permission('admin')(request=request)
-    admins, page, per_page, total_items, total_pages = await admins_services.get_all_admins(
-        db=db, page=pagination_params.page, per_page=pagination_params.per_page
+) -> ChatsAdminPaginatedDataclass:
+    """Get all GPT chats."""
+    page, per_page = pagination_params.page, pagination_params.per_page
+    chats = await chats_controllers.chats_admin_get_all(
+        db=db, user_id=user.id, role=user.role, page=page, per_page=per_page
     )
 
-    return PaginatedResponseModel(
-        items=[UserModel.model_validate(admin) for admin in admins],
-        page=page,
-        per_page=per_page,
-        total_items=total_items,
-        total_pages=total_pages,
-    )
+    return chats
 
 
-@admins_router.delete('/{admin_id}', response_model=UserModel)
-async def delete_admin(request: Request, admin_id: int, db: SessionDep) -> UserSchema:
-    """Changes the role from admin to user."""
-    await auth_dependencies.require_permission('admin')(request=request)
-    admin = await users_services.edit_user(db=db, user_id=admin_id, role=SystemRoleEnum.USER)
-
-    return admin
-
-
-@admins_router.post('/{user_id}', response_model=UserModel)
-async def create_admin(request: Request, user_id: int, db: SessionDep) -> UserSchema:
-    """Changes the user role from user to admin."""
-    await auth_dependencies.require_permission('admin')(request=request)
-    admin = await users_services.edit_user(db=db, user_id=user_id, role=SystemRoleEnum.ADMIN)
-
-    return admin
-
-
-@admins_router.get('/events', response_model=PaginatedResponseModel[EventModel])
+@admins_router.get('/events', response_model=EventPaginatedModel)
 async def event_get_all(
     request: Request,
     pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
     db: SessionDep,
-) -> PaginatedResponseModel[EventModel]:
+) -> EventsPaginatedDataclass:
     """Get all GPT events."""
     await auth_dependencies.require_permission('admin')(request=request)
-    events, page, per_page, total_items, total_pages = await chats_controllers.event_get_all(
-        db=db, page=pagination_params.page, per_page=pagination_params.per_page
-    )
+    page, per_page = pagination_params.page, pagination_params.per_page
+    events = await chats_controllers.event_get_all(db=db, page=page, per_page=per_page)
 
-    return PaginatedResponseModel(
-        items=[EventModel.model_validate(event) for event in events],
-        page=page,
-        per_page=per_page,
-        total_items=total_items,
-        total_pages=total_pages,
-    )
+    return events
 
 
 @admins_router.post('/events', response_model=EventModel)
@@ -114,6 +85,27 @@ async def get_all_users(
     )
 
 
+@admins_router.get('/', response_model=PaginatedResponseModel[UserModel])
+async def get_all_admins(
+    request: Request,
+    pagination_params: Annotated[PaginationParamsModel, Depends(generally_dependencies.get_pagination_params)],
+    db: SessionDep,
+) -> PaginatedResponseModel[UserModel]:
+    """Get list of admins."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    admins, page, per_page, total_items, total_pages = await admins_services.get_all_admins(
+        db=db, page=pagination_params.page, per_page=pagination_params.per_page
+    )
+
+    return PaginatedResponseModel(
+        items=[UserModel.model_validate(admin) for admin in admins],
+        page=page,
+        per_page=per_page,
+        total_items=total_items,
+        total_pages=total_pages,
+    )
+
+
 @admins_router.get('/users/{user_id}', response_model=UserModel)
 async def get_user(user_id: int, db: SessionDep, request: Request) -> UserSchema:
     """Get user by id."""
@@ -130,3 +122,21 @@ async def delete_user(user_id: int, db: SessionDep, request: Request) -> UserSch
     user = await users_controllers.delete_user(db=db, user_id=user_id)
 
     return user
+
+
+@admins_router.delete('/{admin_id}', response_model=UserModel)
+async def delete_admin(request: Request, admin_id: int, db: SessionDep) -> UserSchema:
+    """Changes the role from admin to user."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    admin = await users_services.edit_user(db=db, user_id=admin_id, role=SystemRoleEnum.USER)
+
+    return admin
+
+
+@admins_router.post('/{user_id}', response_model=UserModel)
+async def create_admin(request: Request, user_id: int, db: SessionDep) -> UserSchema:
+    """Changes the user role from user to admin."""
+    await auth_dependencies.require_permission('admin')(request=request)
+    admin = await users_services.edit_user(db=db, user_id=user_id, role=SystemRoleEnum.ADMIN)
+
+    return admin
