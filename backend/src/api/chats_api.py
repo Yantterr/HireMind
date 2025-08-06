@@ -16,7 +16,6 @@ from src.models.chats_models import (
     ChatUserModel,
     MessageCreateModel,
 )
-from src.models.generally_models import NNRoleEnum
 from src.schemas import ChatSchema
 
 chats_router = APIRouter(
@@ -31,7 +30,7 @@ async def chats_get_all(
     db: SessionDep,
 ) -> list[ChatSchema]:
     """Get all GPT chats."""
-    chats = await chats_controllers.chats_user_get_all(user_id=user.id, role=user.role, db=db)
+    chats = await chats_controllers.chats_user_get_all(user_id=user.id, db=db)
 
     return chats
 

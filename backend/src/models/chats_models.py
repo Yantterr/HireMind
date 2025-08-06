@@ -1,59 +1,71 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from src.models.generally_models import Base, NNRoleEnum, PaginatedResponseModel
+from src.models.generally_models import NNRoleEnum, PaginatedResponseModel
 
 RATING_FIELD = Field(ge=0, le=4, description='Rating scale from 0 to 4 inclusive')
 LANGUAGE_FIELD = Field(ge=0, le=9, description='Programming language identifier (0-9 inclusive)')
 PROGRESSION_FIELD = Field(ge=0, le=1, description='0: arithmetic progression, 1: geometric progression')
 
 
-class MessageModel(Base):
+class MessageBase(BaseModel):
+    """Base message model."""
+
+    content: str
+
+
+class EventBase(BaseModel):
+    """Base event model."""
+
+    content: str
+
+
+class ChatBase(BaseModel):
+    """Base chat model."""
+
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class MessageModel(MessageBase):
     """Individual message within a chat conversation."""
 
     id: Optional[int] = None
     role: NNRoleEnum
-    content: str
     created_at: datetime
 
 
-class EventModel(Base):
+class EventModel(EventBase):
     """Significant event occurring within a chat session."""
 
     id: int
-    content: str
 
 
-class EventPaginatedModel(PaginatedResponseModel[EventModel]):
+class EventPaginatedModel(PaginatedResponseModel):
     """Model for paginated list of events."""
 
-    pass
+    items: List[EventModel]
 
 
-class ChatUserModel(Base):
+class ChatCoreModel(ChatBase):
+    """Core chat model with common fields."""
+
+    messages: List[MessageModel]
+    events: List[EventModel]
+
+
+class ChatUserModel(ChatCoreModel):
     """Complete chat session with metadata and content."""
 
     id: int
-    title: str
-    messages: list[MessageModel]
-    events: list[EventModel]
-    created_at: datetime
-    updated_at: datetime
     queue_position: int
 
 
-class ChatsUserModel(Base):
-    """Minimal chat representation for listing purposes."""
-
-    id: int
-    title: str
-    updated_at: datetime
-
-
 class ChatAdminModel(ChatUserModel):
-    """Complete chat session with metadata and content."""
+    """Complete chat session with admin-specific metadata."""
 
     current_event_chance: float
     progression_type: int
@@ -63,13 +75,21 @@ class ChatAdminModel(ChatUserModel):
     current_count_request_tokens: int
 
 
-class ChatsAdminModel(PaginatedResponseModel[ChatAdminModel]):
-    """Complete chat session with metadata and content."""
+class ChatsUserModel(BaseModel):
+    """Minimal chat representation for listing purposes."""
 
-    pass
+    id: int
+    title: str
+    updated_at: datetime
 
 
-class ChatCreateModel(Base):
+class ChatsAdminModel(PaginatedResponseModel):
+    """Paginated list of admin chats."""
+
+    items: List[ChatAdminModel]
+
+
+class ChatCreateModel(BaseModel):
     """Parameters for initializing a new chat session."""
 
     title: str
@@ -84,23 +104,19 @@ class ChatCreateModel(Base):
     language: int = LANGUAGE_FIELD
 
 
-class MessageCreateModel(Base):
+class MessageCreateModel(MessageBase):
     """Payload for adding a new message to a chat."""
 
     role: NNRoleEnum
-    content: str
 
 
-class EventCreateModel(Base):
+class EventCreateModel(EventBase):
     """Payload for recording a chat event."""
 
-    content: str
 
-
-class NNResponseModel(Base):
+class NNResponseModel(MessageBase):
     """AI-generated response with token usage metrics."""
 
     count_request_tokens: int
     count_response_tokens: int
     role: NNRoleEnum
-    content: str

@@ -1,7 +1,6 @@
 from datetime import datetime
 from json import loads
 
-from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.engines.ollama_engine as ollama_engine
@@ -23,7 +22,7 @@ from src.models.generally_models import NNRoleEnum, SystemRoleEnum
 from src.schemas import ChatSchema, EventSchema
 
 
-async def chats_user_get_all(db: AsyncSession, role: SystemRoleEnum, user_id: int) -> list[ChatSchema]:
+async def chats_user_get_all(db: AsyncSession, user_id: int) -> list[ChatSchema]:
     """Get all GPT chats for the authorized user."""
     chats, _, _ = await gpt_service.chat_get_all(db=db, user_id=user_id)
     return chats
