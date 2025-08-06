@@ -16,6 +16,7 @@ from src.models.chats_models import (
     ChatUserModel,
     MessageCreateModel,
 )
+from src.models.generally_models import NNRoleEnum
 from src.schemas import ChatSchema
 
 chats_router = APIRouter(
@@ -41,12 +42,21 @@ async def chat_create(
     db: SessionDep,
     redis: RedisDep,
     create_chat_data: ChatCreateModel,
+    background_tasks: BackgroundTasks,
 ) -> ChatDataclass:
     """Create a new GPT chat."""
     chat = await chats_controllers.chat_create(
         db=db, redis=redis, create_chat_data=create_chat_data, user_id=user.id, user_role=user.role
     )
 
+    queue_position = await chats_utils.queue_add_task(redis=redis, chat_id=chat.id, user_id=user.id)
+    chat.queue_position = queue_position
+
+    background_tasks.add_task(
+        chats_controllers.chat_init, create_chat_data=create_chat_data, db=db, redis=redis, chat=chat
+    )
+
+    await chats_utils.chat_save(chat=chat, redis=redis)
     return chat
 
 
@@ -73,11 +83,12 @@ async def message_create(
 ) -> ChatDataclass:
     """Create and send message to GPT chat."""
     queue_position = await chats_utils.queue_add_task(redis=redis, chat_id=chat.id, user_id=chat.user_id)
+    chat.queue_position = queue_position
+
     background_tasks.add_task(
         chats_controllers.message_send, chat=chat, create_message_data=create_message_data, db=db, redis=redis
     )
 
-    chat.queue_position = queue_position
     await chats_utils.chat_save(chat=chat, redis=redis)
     return chat
 

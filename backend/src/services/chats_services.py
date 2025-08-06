@@ -67,13 +67,16 @@ async def chat_get(db: AsyncSession, chat_id: int, user_id: int) -> Optional[Cha
 
 
 async def chat_create(
-    db: AsyncSession, title: str, event_chance: float, events: list[EventSchema], progression_type: int, user_id: int
+    db: AsyncSession,
+    title: str,
+    event_chance: float,
+    progression_type: int,
+    user_id: int,
 ) -> ChatSchema:
     """Create a new GPT chat with optional title."""
     new_chat = ChatSchema(
         user_id=user_id,
         title=title,
-        events=events,
         progression_type=progression_type,
         current_event_chance=event_chance,
     )
@@ -94,7 +97,7 @@ async def chat_edit(
     updated_at: Optional[datetime] = None,
     current_event_chance: Optional[float] = None,
     is_archived: Optional[bool] = None,
-    events: Optional[list[EventDataclass]] = None,
+    events: Optional[list[EventSchema]] = None,
     title: Optional[str] = None,
 ) -> ChatSchema:
     """Edit GPT chat by ID."""

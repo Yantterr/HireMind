@@ -1,6 +1,7 @@
 from datetime import datetime
 from json import loads
 
+from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.engines.ollama_engine as ollama_engine
@@ -53,13 +54,30 @@ async def chat_create(
         if count_chats >= 1:
             raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
 
+    event_chance = 1.5 if create_chat_data.progression_type == 0 else 10.0
+    chat = await gpt_service.chat_create(
+        db=db,
+        event_chance=event_chance,
+        progression_type=create_chat_data.progression_type,
+        title=create_chat_data.title,
+        user_id=user_id,
+    )
+
+    chat_dataclass = ChatDataclass.from_orm(chat)
+
+    await chats_utils.chat_save(chat=chat_dataclass, redis=redis)
+
+    return chat_dataclass
+
+
+async def chat_init(create_chat_data: ChatCreateModel, db: AsyncSession, redis: AsyncRedis, chat: ChatDataclass):
+    """Initialize GPT chat."""
     if create_chat_data.initial_context:
         initial_context = await chats_utils.ollama_generate_initial_context(create_chat_data.initial_context)
     else:
         initial_context = ''
 
     events = await chats_utils.event_get_random(db=db)
-
     system_prompt_content = (
         f'Ты — живой интервьюер с уникальной личностью, проводящий собеседование на позицию '
         f'{NNConfig["language"][create_chat_data.language]} разработчика.'
@@ -94,48 +112,41 @@ async def chat_create(
         f'• Жёсткость: {NNConfig["rigidity"][create_chat_data.rigidity]}\n'
         f'• Детализация: {NNConfig["detail_orientation"][create_chat_data.detail_orientation]}\n'
         f'• Темп: {NNConfig["pacing"][create_chat_data.pacing]}\n'
-        f'КОНТЕКСТ ВАКАНСИИ:\n{initial_context}\n\n'
         'ДОПОЛНИТЕЛЬНЫЕ СОБЫТИЯ:\n' + '\n'.join(f'- {event.content}' for event in events) + '\n\n'
         'ЗАПРЕЩЕНО:\n'
         '- Задавать несколько вопросов подряд\n'
         '- Продолжать без ответа пользователя\n'
         '- Делать длинные монологи\n'
         '- Использовать шаблонные фразы\n'
+        f'КОНТЕКСТ ВАКАНСИИ:\n{initial_context}\n\n'
     )
-    event_chance = 1.5 if create_chat_data.progression_type == 0 else 10.0
-    chat = await gpt_service.chat_create(
-        db=db,
-        events=events,
-        event_chance=event_chance,
-        progression_type=create_chat_data.progression_type,
-        title=create_chat_data.title,
-        user_id=user_id,
-    )
-    message = await gpt_service.message_create(
+
+    system_prompt = await gpt_service.message_create(
         db=db, chat_id=chat.id, role=NNRoleEnum.SYSTEM, content=system_prompt_content
     )
+    chat.messages.append(MessageDataclass.from_orm(system_prompt))
+    nn_response = await ollama_engine.ollama_request(messages=chat.messages)
 
-    chat_dataclass = ChatDataclass.from_orm(chat)
-    chat_dataclass.messages.append(MessageDataclass.from_orm(message))
-
-    nn_response = await ollama_engine.ollama_request(messages=chat_dataclass.messages)
-
-    chat_dataclass.total_count_request_tokens += nn_response.count_request_tokens
-    chat_dataclass.total_count_response_tokens += nn_response.count_response_tokens
-    chat_dataclass.current_count_request_tokens = nn_response.count_request_tokens + nn_response.count_response_tokens
-    chat_dataclass.messages.append(
+    chat.total_count_request_tokens += nn_response.count_request_tokens
+    chat.total_count_response_tokens += nn_response.count_response_tokens
+    chat.current_count_request_tokens = nn_response.count_request_tokens + nn_response.count_response_tokens
+    chat.messages.append(
         MessageDataclass(
             id=None,
-            chat_id=chat_dataclass.id,
+            chat_id=chat.id,
             role=NNRoleEnum.ASSISTANT,
             content=nn_response.content,
             created_at=datetime.now().isoformat(),
         )
     )
 
-    await chats_utils.chat_save(chat=chat_dataclass, redis=redis)
+    await gpt_service.chat_edit(db=db, chat_id=chat.id, events=events)
+    await chats_utils.chat_save(chat=chat, redis=redis)
 
-    return chat_dataclass
+    await chats_utils.queue_remove_task(redis=redis)
+    chat.queue_position = 0
+
+    return chat
 
 
 async def chat_delete(chat_id: int, user_id: int, db: AsyncSession, redis: AsyncRedis) -> ChatDataclass:
