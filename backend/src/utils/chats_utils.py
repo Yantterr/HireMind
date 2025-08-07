@@ -22,12 +22,12 @@ async def chat_save(chat: ChatDataclass, redis: AsyncRedis):
     await redis.set(
         name=f'notifications/delete={chat.user_id}/chat:{chat.id}',
         value='',
-        expire=settings.redis_chat_time_notification,
+        expire=30,
     )
     await redis.set(
         name=f'{chat.user_id}/chat:{chat.id}',
         value=dumps(asdict(chat)),
-        expire=settings.redis_chat_time_live,
+        expire=40,
     )
 
 

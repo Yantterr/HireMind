@@ -6,12 +6,13 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
+import src.utils.redis_utils as redis_utils
 from src.api.admins_api import admins_router
 from src.api.auth_api import auth_router
 from src.api.chats_api import chats_router
 from src.api.users_api import users_router
 from src.config import settings
-from src.engines.redis_engine import close_redis, init_redis, listen_redis_chat_expired
+from src.engines.redis_engine import close_redis, init_redis
 from src.middlewares.auth_middlewares import (
     AnonymousUserTokenMiddleware,
     ValidateTokenAndAuthMiddleware,
@@ -21,8 +22,8 @@ from src.middlewares.auth_middlewares import (
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle."""
-    await init_redis()
-    listener_task = asyncio.create_task(listen_redis_chat_expired())
+    redis_client = await init_redis()
+    listener_task = asyncio.create_task(redis_utils.listen_redis_chat_expired(redis_client=redis_client))
     yield
     listener_task.cancel()
 
@@ -54,7 +55,6 @@ app.include_router(admins_router)
 
 
 if __name__ == '__main__':
-    """Yofasdjflaksjdf"""
     import uvicorn
 
     uvicorn.run(app, host=settings.host, port=settings.port)

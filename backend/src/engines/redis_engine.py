@@ -1,21 +1,14 @@
-from datetime import datetime
-from json import loads
 from typing import Annotated, Awaitable, Optional
 
 from fastapi import Depends
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-import src.services.chats_services as gpt_service
-import src.utils.redis_utils as redis_utils
 from src.config import settings
-from src.dto.chats_dto import ChatDataclass
-from src.engines.database_engine import session_factory
 
 redis_client: Redis | None = None
 
 
-async def init_redis() -> None:
+async def init_redis() -> Redis:
     """Initialization the Redis client connection with parameters from settings."""
     global redis_client
     redis_client = Redis(
@@ -24,6 +17,7 @@ async def init_redis() -> None:
     )
     await redis_client.ping()
     await redis_client.config_set('notify-keyspace-events', 'Ex')
+    return redis_client
 
 
 async def close_redis() -> None:
@@ -32,53 +26,6 @@ async def close_redis() -> None:
     if redis_client is not None:
         await redis_client.close()
         await redis_client.connection_pool.disconnect()
-
-
-async def listen_redis_chat_expired() -> None:
-    """Listen for Redis key expiration events.
-
-    When a key matching pattern 'notifications/delete=' expires, it triggers the "save_expired_chat" handler.
-    """
-    global redis_client
-    if redis_client is None:
-        raise RuntimeError('Redis client is not initialized')
-
-    pubsub = redis_client.pubsub()
-    await pubsub.psubscribe('__keyevent@0__:expired')
-    async for message in pubsub.listen():
-        if redis_client is None:
-            raise RuntimeError('Redis client is not initialized')
-        if message['type'] == 'pmessage':
-            if message['data'].startswith('notifications/delete='):
-                await save_expired_chat(message=message, session_factory=session_factory, redis=redis_client)
-
-
-async def save_expired_chat(message: dict, session_factory: async_sessionmaker[AsyncSession], redis: Redis):
-    """Save new messages from expired Redis chat data to the database."""
-    try:
-        key = message['data'].split('=')[1]
-        chat_data_json = await redis.get(key)
-        if not chat_data_json:
-            print(f'No chat data found in Redis for key: {key}')
-            return
-
-        chat = ChatDataclass.from_dict(loads(chat_data_json))
-
-        async with session_factory() as session:
-            await redis_utils.save_messages(chat=chat, db=session)
-            await gpt_service.chat_edit(
-                db=session,
-                chat_id=chat.id,
-                events=chat.events,
-                count_request_tokens=chat.count_request_tokens,
-                count_response_tokens=chat.count_response_tokens,
-                updated_at=datetime.fromisoformat(chat.updated_at),
-                current_event_chance=chat.current_event_chance,
-            )
-            await session.close()
-
-    except Exception as e:
-        print(f'Error processing expired key in DB: {e}')
 
 
 class AsyncRedis:
