@@ -1,5 +1,6 @@
 import { Box, Container } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
+import ChatCreateForm from 'components/CreateChatForm/CreateChatForm';
 import MyAppBar from 'components/MyAppBar/MyAppBar';
 import { useAppSelector } from 'hooks/redux';
 import Chat from 'pages/Chat/Chat';
@@ -62,6 +63,7 @@ export default function App() {
             </Route>
             <Route path="example_route_3/:recipeId" element={withSuspense(ExampleSuspensePage)} />
             <Route path="example_route_3" element={withSuspense(ExampleSuspensePage)} />
+            <Route path="chat/new" element={withSuspense(ChatCreateForm)} />
             <Route path="chat/:chatId" element={withSuspense(Chat)} />
 
             <Route path="/" element={<Home />} />

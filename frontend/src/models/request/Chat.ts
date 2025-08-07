@@ -1,8 +1,7 @@
 export interface NewChatRequest {
   title: string;
-
-  role: string;
-
+  initial_context: string;
+  progression_type: number;
   difficulty: number;
   politeness: number;
   friendliness: number;
@@ -10,4 +9,9 @@ export interface NewChatRequest {
   detail_orientation: number;
   pacing: number;
   language: number;
+}
+
+export interface NewMessageRequest {
+  role: 'user';
+  content: string;
 }

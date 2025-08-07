@@ -1,7 +1,7 @@
-import CreateChatForm from 'components/CreateChatForm/CreateChatForm';
+import AgentSelector from 'components/AgentSelector/AgentSelector';
 
 function Home() {
-  return <CreateChatForm />;
+  return <AgentSelector />;
 }
 
 export default Home;

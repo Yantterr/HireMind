@@ -1,4 +1,4 @@
-import { authAPI } from 'api/api';
+import { authAPI, usersAPI } from 'api/api';
 import { anonym } from 'models/IAuthUser';
 import { toast } from 'react-toastify';
 import type { AppDispatch, RootState } from 'store/store';
@@ -12,7 +12,7 @@ export const getCurrentUser = () => async (dispatch: AppDispatch, getStore: () =
   }
   try {
     dispatch(authSlice.actions.authFetching());
-    const result = await authAPI.me();
+    const result = await usersAPI.me();
     dispatch(
       authSlice.actions.authFetchingUserSuccess({
         email: result.data.email,
@@ -157,7 +157,7 @@ export const confirmEmail = (pinCode: string) => async (dispatch: AppDispatch, g
   }
   try {
     dispatch(authSlice.actions.authFetching());
-    const result = await authAPI.confirmEmail(pinCode);
+    const result = await usersAPI.confirmEmail(pinCode);
     dispatch(
       authSlice.actions.authFetchingUserSuccess({
         email: result.data.email,
@@ -190,7 +190,7 @@ export const requestPinCode = () => async (dispatch: AppDispatch, getStore: () =
   }
   try {
     dispatch(authSlice.actions.authFetching());
-    await authAPI.requestPinCode();
+    await usersAPI.requestPinCode();
     dispatch(authSlice.actions.authFetchingSuccess());
   } catch (e) {
     console.log(e.response?.data?.detail);
