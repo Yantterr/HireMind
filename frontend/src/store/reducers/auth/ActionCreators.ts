@@ -1,202 +1,132 @@
 import { authAPI, usersAPI } from 'api/api';
-import { anonym } from 'models/IAuthUser';
-import { toast } from 'react-toastify';
-import type { AppDispatch, RootState } from 'store/store';
+import type { AppDispatch } from 'store/store';
 
 import { authSlice } from './Slice';
 
-export const getCurrentUser = () => async (dispatch: AppDispatch, getStore: () => RootState) => {
-  const { isFetching } = getStore().authReducer;
-  if (isFetching) {
-    return;
-  }
+export const editCurrentModalOverlay = (action: string | null) => (dispatch: AppDispatch) => {
+  dispatch(authSlice.actions.authFetchingSuccess());
+  dispatch(authSlice.actions.setCurrentModalOverlay(action));
+};
+
+export const getCurrentUser = () => async (dispatch: AppDispatch) => {
   try {
     dispatch(authSlice.actions.authFetching());
     const result = await usersAPI.me();
     dispatch(
-      authSlice.actions.authFetchingUserSuccess({
+      authSlice.actions.authSetUser({
         email: result.data.email,
-        id: result.data.id.toString(),
+        id: result.data.id,
         isActivated: result.data.is_activated,
-        login: result.data.username,
+        username: result.data.username,
         role: result.data.role,
       }),
     );
-  } catch (e) {
-    console.log(e.response?.data?.detail);
-    console.log(e.message);
-    dispatch(authSlice.actions.authFetchingUserSuccess(anonym));
-  }
-  dispatch(authSlice.actions.initUserSuccess());
-};
-
-export const loginAuth =
-  (email: string, password: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
-    const { isFetching } = getStore().authReducer;
-    if (isFetching) {
-      toast.info('Ожидайте, ждем ответа от сервера ...', {
-        autoClose: 5000,
-        closeOnClick: true,
-        draggable: true,
-        hideProgressBar: false,
-        pauseOnHover: true,
-        position: 'top-right',
-        theme: 'colored',
-      });
-      return;
-    }
-    try {
-      dispatch(authSlice.actions.authFetching());
-      const result = await authAPI.login(email, password);
-      dispatch(
-        authSlice.actions.authFetchingUserSuccess({
-          email: result.data.email,
-          id: result.data.id.toString(),
-          isActivated: result.data.is_activated,
-          login: result.data.username,
-          role: result.data.role,
-        }),
-      );
-    } catch (e) {
-      console.log(e.response?.data?.detail);
-      console.log(e.message);
-      toast.warn('Не правильный логин или пароль', {
-        autoClose: 5000,
-        closeOnClick: true,
-        draggable: true,
-        hideProgressBar: false,
-        pauseOnHover: true,
-        position: 'top-right',
-        theme: 'colored',
-      });
-      dispatch(authSlice.actions.authFetchingError(e.message));
-    }
-  };
-
-export const logoutAuth = () => async (dispatch: AppDispatch, getStore: () => RootState) => {
-  const { isFetching } = getStore().authReducer;
-  if (isFetching) {
-    toast.info('Ожидайте, ждем ответа от сервера ...', {
-      autoClose: 5000,
-      closeOnClick: true,
-      draggable: true,
-      hideProgressBar: false,
-      pauseOnHover: true,
-      position: 'top-right',
-      theme: 'colored',
-    });
-    return;
-  }
-  try {
-    dispatch(authSlice.actions.authFetching());
-    const result = await authAPI.logout();
-    console.log(result);
-    dispatch(authSlice.actions.authFetchingUserSuccess(anonym));
-  } catch (e) {
-    console.error(e);
-    dispatch(authSlice.actions.authFetchingError(e.message));
-  }
-};
-
-export const createUserAuth =
-  (login: string, email: string, password: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
-    const { isFetching } = getStore().authReducer;
-    if (isFetching) {
-      toast.info('Ожидайте, ждем ответа от сервера ...', {
-        autoClose: 5000,
-        closeOnClick: true,
-        draggable: true,
-        hideProgressBar: false,
-        pauseOnHover: true,
-        position: 'top-right',
-        theme: 'colored',
-      });
-      return;
-    }
-    try {
-      dispatch(authSlice.actions.authFetching());
-      const result = await authAPI.createUser(email, login, password);
-      dispatch(
-        authSlice.actions.authFetchingUserSuccess({
-          email: result.data.email,
-          id: result.data.id.toString(),
-          isActivated: result.data.is_activated,
-          login: result.data.username,
-          role: result.data.role,
-        }),
-      );
-    } catch (e) {
-      console.log(e.response?.data?.detail);
-      console.log(e.message);
-      toast.warn('Регистрация завершилась с ошибкой', {
-        autoClose: 5000,
-        closeOnClick: true,
-        draggable: true,
-        hideProgressBar: false,
-        pauseOnHover: true,
-        position: 'top-right',
-        theme: 'colored',
-      });
-      dispatch(authSlice.actions.authFetchingError(e.message));
-    }
-  };
-
-export const confirmEmail = (pinCode: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
-  const { isFetching } = getStore().authReducer;
-  if (isFetching) {
-    toast.info('Ожидайте, ждем ответа от сервера ...', {
-      autoClose: 5000,
-      closeOnClick: true,
-      draggable: true,
-      hideProgressBar: false,
-      pauseOnHover: true,
-      position: 'top-right',
-      theme: 'colored',
-    });
-    return;
-  }
-  try {
-    dispatch(authSlice.actions.authFetching());
-    const result = await usersAPI.confirmEmail(pinCode);
-    dispatch(
-      authSlice.actions.authFetchingUserSuccess({
-        email: result.data.email,
-        id: result.data.id.toString(),
-        isActivated: result.data.is_activated,
-        login: result.data.username,
-        role: result.data.role,
-      }),
-    );
-  } catch (e) {
-    console.log(e.response?.data?.detail);
-    console.log(e.message);
-    dispatch(authSlice.actions.authFetchingError(e.message));
-  }
-};
-
-export const requestPinCode = () => async (dispatch: AppDispatch, getStore: () => RootState) => {
-  const { isFetching } = getStore().authReducer;
-  if (isFetching) {
-    toast.info('Ожидайте, ждем ответа от сервера ...', {
-      autoClose: 5000,
-      closeOnClick: true,
-      draggable: true,
-      hideProgressBar: false,
-      pauseOnHover: true,
-      position: 'top-right',
-      theme: 'colored',
-    });
-    return;
-  }
-  try {
-    dispatch(authSlice.actions.authFetching());
-    await usersAPI.requestPinCode();
     dispatch(authSlice.actions.authFetchingSuccess());
   } catch (e) {
     console.log(e.response?.data?.detail);
     console.log(e.message);
     dispatch(authSlice.actions.authFetchingError(e.message));
   }
+  dispatch(authSlice.actions.initUserSuccess());
 };
 
-export default null;
+export const loginAuth = (email: string, password: string) => async (dispatch: AppDispatch) => {
+  try {
+    dispatch(authSlice.actions.authFetching());
+    const result = await authAPI.login(email, password);
+    dispatch(
+      authSlice.actions.authSetUser({
+        email: result.data.email,
+        id: result.data.id,
+        isActivated: result.data.is_activated,
+        username: result.data.username,
+        role: result.data.role,
+      }),
+    );
+    dispatch(authSlice.actions.authFetchingSuccess());
+  } catch (e) {
+    console.log(e.response?.data?.detail);
+    console.log(e.message);
+    dispatch(authSlice.actions.authFetchingError(e.response?.data?.detail));
+  }
+};
+
+export const registerAuth =
+  (email: string, password: string, username: string, next?: () => void) => async (dispatch: AppDispatch) => {
+    try {
+      dispatch(authSlice.actions.authFetching());
+      const result = await authAPI.register(email, username, password);
+      dispatch(
+        authSlice.actions.authSetUser({
+          email: result.data.email,
+          id: result.data.id,
+          isActivated: result.data.is_activated,
+          username: result.data.username,
+          role: result.data.role,
+        }),
+      );
+      dispatch(authSlice.actions.authFetchingSuccess());
+      if (next) {
+        next();
+      }
+    } catch (e) {
+      console.log(e.response?.data?.detail);
+      console.log(e.message);
+      dispatch(authSlice.actions.authFetchingError(e.response?.data?.detail));
+    }
+  };
+
+export const logoutAuth = () => async (dispatch: AppDispatch) => {
+  try {
+    dispatch(authSlice.actions.authFetching());
+    await authAPI.logout();
+    const user = await usersAPI.me();
+    dispatch(
+      authSlice.actions.authSetUser({
+        email: user.data.email,
+        id: user.data.id,
+        isActivated: user.data.is_activated,
+        username: user.data.username,
+        role: user.data.role,
+      }),
+    );
+    dispatch(authSlice.actions.authFetchingSuccess());
+  } catch (e) {
+    console.log(e.response?.data?.detail);
+    console.log(e.message);
+    dispatch(authSlice.actions.authFetchingError(e.response?.data?.detail));
+  }
+};
+
+export const confirmEmail = (pinCode: number) => async (dispatch: AppDispatch) => {
+  try {
+    dispatch(authSlice.actions.authFetching());
+    const result = await usersAPI.confirmEmail(pinCode);
+    dispatch(
+      authSlice.actions.authSetUser({
+        email: result.data.email,
+        id: result.data.id,
+        isActivated: result.data.is_activated,
+        username: result.data.username,
+        role: result.data.role,
+      }),
+    );
+    dispatch(authSlice.actions.authFetchingSuccess());
+  } catch (e) {
+    console.log(e.response?.data?.detail);
+    console.log(e.message);
+    dispatch(authSlice.actions.authFetchingError(e.response?.data?.detail));
+  }
+};
+
+export const getNewKey = () => async (dispatch: AppDispatch) => {
+  try {
+    dispatch(authSlice.actions.authFetching());
+    await usersAPI.getNewKey();
+    dispatch(authSlice.actions.authFetchingSuccess());
+  } catch (e) {
+    console.log(e.response?.data?.detail);
+    console.log(e.message);
+    dispatch(authSlice.actions.authFetchingError(e));
+  }
+};

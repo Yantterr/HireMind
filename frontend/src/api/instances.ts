@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { anonym } from 'models/IAuthUser';
 import { authSlice } from 'store/reducers/auth/Slice';
 
 import store from '../store/store';
@@ -13,18 +12,17 @@ export const instance = axios.create({
   withCredentials: true,
 });
 
-instance.interceptors.response.use(
-  (response) => {
-    store.dispatch(authSlice.actions.isGoodConnectionAuth());
-    return response;
-  },
-  async (error) => {
-    if (error?.response?.status === undefined || error?.response?.status === 0) {
-      store.dispatch(authSlice.actions.isBadConnectionAuth());
-    } else if (error.response && error.response.status === 401) {
-      store.dispatch(authSlice.actions.authFetchingUserSuccess(anonym));
-    }
+// instance.interceptors.response.use(
+// (response) => {
+//   store.dispatch(authSlice.actions.isGoodConnectionAuth());
+//   return response;
+// },
+// async (error) => {
+//   if (error?.response?.status === undefined || error?.response?.status === 0) {
+//     store.dispatch(authSlice.actions.isBadConnectionAuth());
+//   } else if (error.response && error.response.status === 401) {
+//   }
 
-    throw error;
-  },
-);
+//   throw error;
+// },
+// );

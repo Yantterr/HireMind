@@ -1,12 +1,19 @@
 import type { AxiosResponse } from 'axios';
-import type { NewChatRequest, NewMessageRequest } from 'models/request/Chat';
-import type { UserResponse } from 'models/response/Auth';
-import type { ChatResponse, PaginatedChatsResponse } from 'models/response/Chat';
 
 import { instance } from './instances';
+import type { SystemRole } from 'types/AuthTypes';
+import type { IChat, TChats, ICreateChat } from 'types/ChatsTypes';
+
+type UserResponse = {
+  id: number;
+  email: string;
+  username: string;
+  role: SystemRole;
+  is_activated: boolean;
+};
 
 export const authAPI = {
-  async createUser(email: string, username: string, password: string): Promise<AxiosResponse<UserResponse>> {
+  async register(email: string, username: string, password: string): Promise<AxiosResponse<UserResponse>> {
     return instance.post<UserResponse>('/auth/register', {
       email,
       password,
@@ -27,35 +34,33 @@ export const authAPI = {
 };
 
 export const chatsAPI = {
-  async createChat(data: NewChatRequest): Promise<AxiosResponse<ChatResponse>> {
-    return instance.post<ChatResponse>('/chats/', data);
+  async createChat(data: ICreateChat): Promise<AxiosResponse<IChat>> {
+    return instance.post<IChat>('/chats/', data);
   },
-
-  async createNewMassage(chatId: number, data: NewMessageRequest): Promise<AxiosResponse<ChatResponse>> {
-    return instance.put<ChatResponse>(`/chats/${chatId}/messages`, data);
-  },
-
-  async deleteChat(chatId: number): Promise<AxiosResponse<ChatResponse>> {
-    return instance.delete<ChatResponse>(`/chats/${chatId}/`);
-  },
-
-  async getAllChat(page: number, perPage: number): Promise<AxiosResponse<PaginatedChatsResponse>> {
-    return instance.get<PaginatedChatsResponse>('/chats/', {
-      params: {
-        page,
-        per_page: perPage,
-      },
+  async sendMessage(chatId: number, data: string): Promise<AxiosResponse<IChat>> {
+    return instance.post<IChat>(`/chats/${chatId}/messages`, {
+      content: data,
+      role: 'user',
     });
   },
+  //   async createNewMassage(chatId: number, data: NewMessageRequest): Promise<AxiosResponse<ChatResponse>> {
+  //     return instance.put<ChatResponse>(`/chats/${chatId}/messages`, data);
+  //   },
 
-  async getChat(chatId: number): Promise<AxiosResponse<ChatResponse>> {
-    return instance.get<ChatResponse>(`/chats/${chatId}/`);
+  //   async deleteChat(chatId: number): Promise<AxiosResponse<ChatResponse>> {
+  //     return instance.delete<ChatResponse>(`/chats/${chatId}/`);
+  //   },
+  async getAllChat(): Promise<AxiosResponse<TChats>> {
+    return instance.get<TChats>('/chats/');
+  },
+  async getChat(chatId: number): Promise<AxiosResponse<IChat>> {
+    return instance.get<IChat>(`/chats/${chatId}`);
   },
 };
 
 export const usersAPI = {
-  async confirmEmail(pinCode: string): Promise<AxiosResponse<UserResponse>> {
-    return instance.patch<UserResponse>('/users/confirm_email', {
+  async confirmEmail(pinCode: number): Promise<AxiosResponse<UserResponse>> {
+    return instance.patch<UserResponse>('/users/confirm-email', {
       key: pinCode,
     });
   },
@@ -64,7 +69,7 @@ export const usersAPI = {
     return instance.get<UserResponse>('/users/me');
   },
 
-  async requestPinCode(): Promise<AxiosResponse<void>> {
-    return instance.patch<void>('/users/key');
+  async getNewKey(): Promise<AxiosResponse<void>> {
+    return instance.post<void>('/users/key');
   },
 };
