@@ -1,12 +1,4 @@
-from typing import Optional
-
 from src.models.generally_models import Base, PasswordField
-
-
-class BaseUserModel(Base):
-    """Base model for user entities with optional username field."""
-
-    username: Optional[str] = None
 
 
 class AuthLoginModel(PasswordField):

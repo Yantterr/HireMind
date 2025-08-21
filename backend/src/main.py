@@ -36,6 +36,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(lifespan=lifespan)
 
 
+app.root_path = '/api'
+
 if settings.backend_cors_origins:
     app.add_middleware(
         CORSMiddleware,

@@ -69,10 +69,11 @@ class Settings(BaseSettings):
         """Construct a cookie token configuration for FastAPI."""
         return {
             'key': 'token',
-            'httponly': True,
+            'httponly': False,
             'max_age': 2_592_000,
             'secure': not self.develop_mode,
-            'samesite': 'none' if self.develop_mode else 'lax',
+            'samesite': 'lax',
+            'path': '/',
         }
 
     @property

@@ -2,7 +2,6 @@ from typing import Optional
 
 from pydantic import EmailStr, Field
 
-from src.models.auth_models import BaseUserModel
 from src.models.generally_models import Base, PasswordField, SystemRoleEnum
 
 
@@ -18,10 +17,11 @@ class PasswordOperationsMixin(PasswordField):
     pass
 
 
-class UserModel(BaseUserModel):
+class UserModel(Base):
     """Complete user model with authentication status and system role."""
 
     id: int
+    username: Optional[str] = Field(None, description="User's username")
     email: Optional[EmailStr] = Field(None, description="User's email address")
     role: SystemRoleEnum = Field(..., description="User's system role")
     is_activated: bool = Field(False, description='Account activation status')

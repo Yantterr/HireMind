@@ -189,6 +189,13 @@ async def queue_get_position(redis: AsyncRedis, chat_id: int) -> int:
     return 0
 
 
+async def queue_get_count_tasks(redis: AsyncRedis, user_id: int) -> int:
+    """Get queue count from redis."""
+    queue = await queue_get(redis=redis)
+
+    return len([cell for cell in queue.cells if cell.user_id == user_id])
+
+
 async def queue_add_task(redis: AsyncRedis, user_id: int, chat_id: int) -> int:
     """Add task to queue in redis."""
     queue = await queue_get(redis=redis)

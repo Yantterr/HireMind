@@ -10,6 +10,7 @@ from src.dto.chats_dto import ChatDataclass
 from src.dto.users_dto import UserDataclass
 from src.engines.database_engine import SessionDep
 from src.engines.redis_engine import RedisDep
+from src.logger import Logger
 from src.models.chats_models import (
     ChatCreateModel,
     ChatsUserModel,
@@ -35,7 +36,7 @@ async def chats_get_all(
     return chats
 
 
-@chats_router.post('/', response_model=ChatUserModel)
+@chats_router.post('/', response_model=ChatCreateModel)
 async def chat_create(
     user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('anonym'))],
     db: SessionDep,
@@ -44,6 +45,9 @@ async def chat_create(
     background_tasks: BackgroundTasks,
 ) -> ChatDataclass:
     """Create a new GPT chat."""
+    if user.role == 'anonym' and await chats_utils.queue_get_count_tasks(redis=redis, user_id=user.id) >= 1:
+        raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
+
     chat = await chats_controllers.chat_create(
         db=db, redis=redis, create_chat_data=create_chat_data, user_id=user.id, user_role=user.role
     )
@@ -78,9 +82,13 @@ async def message_create(
     redis: RedisDep,
     db: SessionDep,
     chat: Annotated[ChatDataclass, Depends(chats_dependencies.get_chat)],
+    user: Annotated[UserDataclass, Depends(auth_dependencies.require_permission('anonym'))],
     background_tasks: BackgroundTasks,
 ) -> ChatDataclass:
     """Create and send message to GPT chat."""
+    if user.role == 'anonym' and await chats_utils.queue_get_count_tasks(redis=redis, user_id=user.id) >= 1:
+        raise Logger.create_response_error(error_key='access_denied', is_cookie_remove=False)
+
     queue_position = await chats_utils.queue_add_task(redis=redis, chat_id=chat.id, user_id=chat.user_id)
     chat.queue_position = queue_position
 
