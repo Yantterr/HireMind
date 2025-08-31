@@ -48,19 +48,51 @@ export const selectChat = (id: number) => async (dispatch: AppDispatch) => {
 };
 
 export const sendMessage = (content: string) => async (dispatch: AppDispatch, getStore: () => RootState) => {
+  let checkInterval: NodeJS.Timeout | null = null;
+
   try {
     dispatch(chatsSlice.actions.chatsFetching());
     const state = getStore();
+
     if (!state.chatsReducer.selectedChat) {
       dispatch(chatsSlice.actions.chatsFetchingError("Chat doesn't exist"));
-    } else {
-      const chat = await chatsAPI.sendMessage(state.chatsReducer.selectedChat.id, content);
-      dispatch(chatsSlice.actions.setChat(chat.data));
-      dispatch(chatsSlice.actions.chatsFetchingSuccess());
+      return;
+    }
+
+    const response = await chatsAPI.sendMessage(state.chatsReducer.selectedChat.id, content);
+    const chat = response.data;
+
+    dispatch(chatsSlice.actions.setChat(chat));
+    dispatch(chatsSlice.actions.chatsFetchingSuccess());
+
+    if (chat.queue_position !== 0) {
+      checkInterval = setInterval(async () => {
+        try {
+          const currentState = getStore();
+
+          if (!currentState.chatsReducer.selectedChat || currentState.chatsReducer.selectedChat.id !== chat.id) {
+            if (checkInterval) clearInterval(checkInterval);
+            return;
+          }
+
+          const updatedChatResponse = await chatsAPI.getChat(chat.id);
+          const updatedChat = updatedChatResponse.data;
+
+          dispatch(chatsSlice.actions.setChat(updatedChat));
+
+          if (updatedChat.queue_position === 0) {
+            if (checkInterval) clearInterval(checkInterval);
+          }
+        } catch (error) {
+          console.error('Failed to check queue status:', error);
+        }
+      }, 5000);
     }
   } catch (e) {
     console.log(e.response?.data?.detail);
     console.log(e.message);
     dispatch(chatsSlice.actions.chatsFetchingError(e.message));
+
+    if (checkInterval) clearInterval(checkInterval);
   }
 };

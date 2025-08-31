@@ -38,7 +38,7 @@ export const chatsAPI = {
     return instance.post<IChat>('/chats/', data);
   },
   async sendMessage(chatId: number, data: string): Promise<AxiosResponse<IChat>> {
-    return instance.post<IChat>(`/chats/${chatId}/messages`, {
+    return instance.put<IChat>(`/chats/${chatId}/messages`, {
       content: data,
       role: 'user',
     });

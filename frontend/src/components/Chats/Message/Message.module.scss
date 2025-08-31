@@ -1,0 +1,27 @@
+.message {
+  display: flex;
+  justify-content: end;
+  color: #e3f2ff;
+  margin: 10px 0;
+  font-weight: 500;
+  font-size: 16px;
+
+  &_bot {
+    justify-content: start !important;
+  }
+
+  &_content {
+    padding: 5px;
+    background-color: #0080ff;
+    border-radius: 10px;
+  }
+
+  &_date {
+    color: #416780;
+    font-weight: 600;
+  }
+}
+
+.container {
+  max-width: 80%;
+}

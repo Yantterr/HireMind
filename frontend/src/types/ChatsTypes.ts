@@ -4,7 +4,7 @@ export interface Message {
   id: number;
   content: string;
   role: MessageRoles;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface IEvent {

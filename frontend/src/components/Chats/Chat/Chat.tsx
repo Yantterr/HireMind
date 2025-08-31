@@ -1,17 +1,24 @@
 import type { IChat } from 'types/ChatsTypes';
 import styles from './Chat.module.scss';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { Message } from '../Message/Message';
+import { useAppDispatch } from 'hooks/redux';
+import { sendMessage } from 'store/reducers/chats/ActionCreators';
 
 type Props = {
   chat: IChat;
 };
 
 export const Chat = ({ chat }: Props) => {
+  const dispatch = useAppDispatch();
+  const [message, setMessage] = useState('');
+  const isFetching = chat.queue_position > 0;
+
   const handlerSendMessage = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    dispatch(sendMessage(message));
+    setMessage('');
   };
-
-  const inQueue = chat.queue_position >= 1;
 
   return (
     <div className={styles.container}>
@@ -19,13 +26,15 @@ export const Chat = ({ chat }: Props) => {
         <span className={styles.top_title}>{chat.title}</span>
       </div>
       <div className={styles.content}>
-        {inQueue && <span className={styles.content_queue}>Место в очереди: {chat.queue_position}</span>}
-        <div className={`${styles.content__messages} ${inQueue ? 'blur' : ''}`}>
-          {chat.messages.map((message) => message.content)}
+        {isFetching && <span className={styles.content_queue}>Место в очереди: {chat.queue_position}</span>}
+        <div className={`${styles.content__messages} ${isFetching ? 'blur' : ''}`}>
+          {chat.messages.map((message) => (
+            <Message role={message.role} date={message.created_at} key={message.id} content={message.content} />
+          ))}
         </div>
       </div>
-      <form onSubmit={handlerSendMessage} className={styles.send}>
-        <textarea />
+      <form onSubmit={handlerSendMessage} className={`${styles.send} ${isFetching ? 'blur' : ''}`}>
+        <textarea placeholder="Сообщение" value={message} onChange={(e) => setMessage(e.target.value)} />
         <button className={styles.send_button}>
           <span />
         </button>
