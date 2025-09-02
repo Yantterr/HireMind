@@ -22,7 +22,7 @@ export const HomePage = ({ editCurrentModalOverlay }: Props) => {
         editCurrentModalOverlay={editCurrentModalOverlay}
         chats={chats}
       />
-      {selectedChat && <Chat chat={selectedChat} />}
+      <Chat chat={selectedChat} />
     </div>
   );
 };

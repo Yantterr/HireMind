@@ -1,12 +1,17 @@
+@import url('../../../scss/animations.module.scss');
+
 .container {
   padding: 10px;
-  width: 70%;
+  width: 68%;
   height: 100%;
   border-radius: 10px;
   background-color: #0f3049;
   display: flex;
   flex-direction: column;
+  position: relative;
   gap: 15px;
+
+  animation: to-left ease-in-out 0.5s;
 }
 
 .top {
@@ -30,6 +35,10 @@
   width: 100%;
   position: relative;
   overflow-y: scroll;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   &__messages {
     display: flex;
@@ -61,6 +70,12 @@
   border-radius: 20px;
   background-color: #082337;
 
+  &_disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
+
   textarea {
     color: #e3f2ff;
     font-weight: 500;
@@ -84,6 +99,12 @@
     border-radius: 50%;
     cursor: pointer;
     position: relative;
+    transition: background-color ease-in-out 0.2s;
+
+    &:hover,
+    &_disabled {
+      background-color: #0955a1;
+    }
 
     span {
       transform: translate(-50%, -50%);

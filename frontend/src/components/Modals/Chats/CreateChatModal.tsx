@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import styles from '../Modal.module.scss';
-import type { CreateChat } from 'types/ChatsTypes';
+import type { ICreateChat } from 'types/ChatsTypes';
 import { useAppDispatch } from 'hooks/redux';
 import { createChat } from 'store/reducers/chats/ActionCreators';
 
@@ -22,7 +22,7 @@ const SLIDER_ITEMS: ConvertorKey[] = [
   'Темп',
 ];
 
-const convertor: Record<ConvertorKey, keyof CreateChat> = {
+const convertor: Record<ConvertorKey, keyof ICreateChat> = {
   Сложность: 'difficulty',
   Вежливость: 'politeness',
   Дружелюбность: 'friendliness',
@@ -52,7 +52,7 @@ export const CreateChatModal = ({ isShow, editCurrentModalOverlay, isFetching, c
     register,
     handleSubmit,
     formState: { isSubmitting, errors },
-  } = useForm<CreateChat>({
+  } = useForm<ICreateChat>({
     defaultValues: {
       difficulty: 3,
       politeness: 3,
@@ -65,7 +65,7 @@ export const CreateChatModal = ({ isShow, editCurrentModalOverlay, isFetching, c
     },
   });
 
-  const onSubmit = async (value: CreateChat) => {
+  const onSubmit = async (value: ICreateChat) => {
     dispatch(createChat(value, () => editCurrentModalOverlay(null)));
   };
 
