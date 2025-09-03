@@ -7,12 +7,11 @@ import { sendMessage } from 'store/reducers/chats/ActionCreators';
 import { Message } from '../Message/Message';
 
 interface Props {
-  chat: IChat | null;
+  chat: IChat;
+  backToChats: () => void;
 }
 
-export const Chat = ({ chat }: Props) => {
-  if (!chat) return null;
-
+export const Chat = ({ chat, backToChats }: Props) => {
   const dispatch = useAppDispatch();
   const [message, setMessage] = useState('');
   const [isFetching, setIsFetching] = useState(chat.queue_position > 0);
@@ -65,6 +64,9 @@ export const Chat = ({ chat }: Props) => {
   return (
     <div className={styles.container}>
       <div className={styles.top}>
+        <button onClick={backToChats} className={`${styles.send_button} ${styles.top_button}`}>
+          <span />
+        </button>
         <span className={styles.top_title}>{chat.title}</span>
       </div>
       {isFetching && <span className={styles.content_queue}>Место в очереди: {chat.queue_position}</span>}

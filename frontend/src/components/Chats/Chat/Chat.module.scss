@@ -9,18 +9,24 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  gap: 15px;
+  justify-content: space-between;
 
   animation: to-left ease-in-out 0.5s;
 }
 
 .top {
   padding: 0px 15px;
-  height: 60px;
+  height: 10%;
   border-radius: 20px;
   display: flex;
   align-items: center;
   background-color: #082337;
+
+  &_button {
+    display: none;
+    transform: rotate(180deg);
+    margin-right: 10px;
+  }
 
   &_title {
     color: #e3f2ff;
@@ -31,7 +37,7 @@
 .content {
   border-radius: 20px;
   background-color: #082337;
-  height: 80%;
+  height: 78%;
   width: 100%;
   position: relative;
   overflow-y: scroll;
@@ -64,8 +70,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-height: 100px;
-  min-height: 60px;
+  height: 10%;
   width: 100%;
   border-radius: 20px;
   background-color: #082337;
@@ -138,5 +143,18 @@
         top: 5px;
       }
     }
+  }
+}
+
+@media (max-width: 1024px) {
+  .container {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+
+  .top_button {
+    display: block;
   }
 }

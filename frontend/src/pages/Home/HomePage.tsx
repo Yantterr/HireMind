@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from 'hooks/redux';
 import { useEffect } from 'react';
 import { getChats, selectChat } from 'store/reducers/chats/ActionCreators';
 import { Chat } from 'components/Chats/Chat/Chat';
+import { chatsSlice } from 'store/reducers/chats/Slice';
 
 type Props = { editCurrentModalOverlay: (value: string | null) => void };
 
@@ -22,7 +23,7 @@ export const HomePage = ({ editCurrentModalOverlay }: Props) => {
         editCurrentModalOverlay={editCurrentModalOverlay}
         chats={chats}
       />
-      <Chat chat={selectedChat} />
+      {selectedChat && <Chat backToChats={() => dispatch(chatsSlice.actions.setChat())} chat={selectedChat} />}
     </div>
   );
 };

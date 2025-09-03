@@ -32,7 +32,7 @@ export const chatsSlice = createSlice({
     setChats(state, action: PayloadAction<TChats>) {
       state.chats = action.payload;
     },
-    setChat(state, action: PayloadAction<IChat>) {
+    setChat(state, action: PayloadAction<IChat | undefined>) {
       state.selectedChat = action.payload;
     },
   },
